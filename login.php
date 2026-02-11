@@ -12,65 +12,68 @@ $email = '';
 
 // Check if form was submitted via POST method
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Sanitize and retrieve email from POST data
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    // Retrieve password 
-    $password = (string)($_POST['password'] ?? '');
+    // CSRF Protection - validate token first
+    if (!validate_csrf_token()) {
+        $errors[] = "Invalid request. Please refresh the page and try again.";
+    } else {
+        // Sanitize and retrieve email from POST data
+        $email = strtolower(trim($_POST['email'] ?? ''));
+        // Retrieve password 
+        $password = (string)($_POST['password'] ?? '');
 
-    // Validate email format using custom validation function
-    if (!is_valid_email($email)) {
-        $errors[] = "Invalid email format.";
-    }
-    
-    // Check if password field is empty
-    if ($password === '') {
-        $errors[] = "Password is required.";
-    }
+        // Validate email format using custom validation function
+        if (!is_valid_email($email)) {
+            $errors[] = "Invalid email format.";
+        }
+        
+        // Check if password field is empty
+        if ($password === '') {
+            $errors[] = "Password is required.";
+        }
 
-    // Proceed only if there are no validation errors
-    if (!$errors) {
-        // Check if account is locked BEFORE checking credentials
-        if (is_locked_out($email)) {
-            $errors[] = "The account '" . htmlspecialchars($email) . "' is temporarily locked due to too many failed login attempts. Please try again after " . LOCKOUT_MINUTES . " minutes, or use a different account.";
-            $email = '';
-        } else {
-
-            
-            // Query database for user with matching email
-            $stmt = db()->prepare("SELECT id, full_name, email, password_hash, role, profile_photo FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
-
-            // Verify password against stored hash
-            $ok = $user && password_verify($password, $user['password_hash']);
-
-            // Record this login attempt for brute-force protection
-            record_login_attempt($email, $ok);
-
-            if ($ok) {
-                // Login successful - store user data in session
-                $_SESSION['user'] = [
-                    'id' => $user['id'],
-                    'full_name' => $user['full_name'],
-                    'email' => $user['email'],
-                    'role' => $user['role'],
-                    'profile_photo' => $user['profile_photo'],
-                ];
-
-                // Role-based redirect to appropriate dashboard
-                if ($user['role'] === 'admin') {
-                    header('Location: ' . BASE_URL . '/admin.php');
-                } else {
-                    header('Location: ' . BASE_URL . '/dashboard.php');
-                }
-                exit;
-            } else {
-                // Login failed - show generic error message
-                $errors[] = "Invalid email or password.";
+        // Proceed only if there are no validation errors
+        if (!$errors) {
+            // Check if account is locked BEFORE checking credentials
+            if (is_locked_out($email)) {
+                $errors[] = "The account '" . htmlspecialchars($email) . "' is temporarily locked due to too many failed login attempts. Please try again after " . LOCKOUT_MINUTES . " minutes, or use a different account.";
                 $email = '';
+            } else {
+                // Query database for user with matching email
+                $stmt = db()->prepare("SELECT id, full_name, email, password_hash, role, profile_photo FROM users WHERE email = ?");
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+
+                // Verify password against stored hash
+                $ok = $user && password_verify($password, $user['password_hash']);
+
+                // Record this login attempt for brute-force protection
+                record_login_attempt($email, $ok);
+
+                if ($ok) {
+                    // Login successful - store user data in session
+                    $_SESSION['user'] = [
+                        'id' => $user['id'],
+                        'full_name' => $user['full_name'],
+                        'email' => $user['email'],
+                        'role' => $user['role'],
+                        'profile_photo' => $user['profile_photo'],
+                    ];
+
+                    // Role-based redirect to appropriate dashboard
+                    if ($user['role'] === 'admin') {
+                        header('Location: ' . BASE_URL . '/admin.php');
+                    } else {
+                        header('Location: ' . BASE_URL . '/dashboard.php');
+                    }
+                    exit;
+                } else {
+                    // Login failed - show generic error message
+                    $errors[] = "Invalid email or password.";
+                    $email = '';
+                }
             }
         }
-    }
+    } // End of CSRF validation else block
 }
 ?>
 <!doctype html>
@@ -176,6 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Login form -->
     <form method="post">
+      <?php echo csrf_field(); ?>
+      
       <div class="field">
         <label>Email</label>
         <input 

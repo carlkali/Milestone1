@@ -4,11 +4,62 @@ declare(strict_types=1);
 // Include database connection
 require_once __DIR__ . '/db.php';
 
+// ==================== CSRF PROTECTION ====================
 
- // Email format validation
+/**
+ * Generate a CSRF token and store it in the session
+ * Call this once per page load that has forms
+ */
+function generate_csrf_token(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Get the current CSRF token
+ */
+function get_csrf_token(): string {
+    return $_SESSION['csrf_token'] ?? '';
+}
+
+/**
+ * Validate CSRF token from form submission
+ * Call this at the start of POST request handling
+ */
+function validate_csrf_token(): bool {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        return true; // Only validate POST requests
+    }
+    
+    $submitted_token = $_POST['csrf_token'] ?? '';
+    $session_token = $_SESSION['csrf_token'] ?? '';
+    
+    if (empty($submitted_token) || empty($session_token)) {
+        return false;
+    }
+    
+    // Use hash_equals to prevent timing attacks
+    return hash_equals($session_token, $submitted_token);
+}
+
+/**
+ * Output CSRF token as hidden input field
+ * Use this in all forms
+ */
+function csrf_field(): string {
+    $token = generate_csrf_token();
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token) . '">';
+}
+
+// ==================== EMAIL & PHONE VALIDATION ====================
+
+// Email format validation
 function is_valid_email(string $email): bool {
     return (bool)filter_var($email, FILTER_VALIDATE_EMAIL);
 }
+
 // Phone number validation
 function is_valid_phone(string $phone): bool {
     return (bool)preg_match('/^(09\d{9}|\+63\d{10})$/', $phone);
@@ -21,6 +72,8 @@ function is_valid_phone(string $phone): bool {
 function client_ip(): string {
     return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 }
+
+// ==================== FILE UPLOAD HANDLING ====================
 
 // Handle profile photo upload with type detection
 function handle_profile_upload(array $file): ?string {
@@ -82,6 +135,8 @@ function handle_profile_upload(array $file): ?string {
     return 'uploads/profiles/' . $name;
 }
 
+// ==================== BRUTE-FORCE PROTECTION ====================
+
 // Record login attempt for brute-force protection
 function record_login_attempt(string $email, bool $success): void {
     $stmt = db()->prepare("INSERT INTO login_attempts (email, ip_address, success) VALUES (?, ?, ?)");
@@ -105,6 +160,8 @@ function is_locked_out(string $email): bool {
     // Lock out if failed attempts exceed threshold
     return $failed >= MAX_FAILED_ATTEMPTS;
 }
+
+// ==================== PASSWORD VALIDATION ====================
 
 // Check against common passwords
 function is_common_password(string $password): bool {

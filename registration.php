@@ -11,51 +11,56 @@ $email = '';
 $phone = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Capture inputs from POST
-    $full_name = trim($_POST['full_name'] ?? '');
-    $email     = strtolower(trim($_POST['email'] ?? ''));
-    $phone     = trim($_POST['phone'] ?? '');
-    $password  = $_POST['password'] ?? '';
+    // CSRF Protection - validate token first
+    if (!validate_csrf_token()) {
+        $errors[] = "Invalid request. Please refresh the page and try again.";
+    } else {
+        // Capture inputs from POST
+        $full_name = trim($_POST['full_name'] ?? '');
+        $email     = strtolower(trim($_POST['email'] ?? ''));
+        $phone     = trim($_POST['phone'] ?? '');
+        $password  = $_POST['password'] ?? '';
 
-    // Validation
-    if ($full_name === '') $errors[] = "Full name required.";
-    if (!is_valid_email($email)) $errors[] = "Invalid email.";
-    if (!is_valid_phone($phone)) $errors[] = "Invalid phone number.";
-    
-    // Password validation - FIX: Check password BEFORE database operations
-    $password_errors = validate_password_strength($password);
-    if ($password_errors) {
-        // Add each specific password error
-        foreach ($password_errors as $pwd_err) {
-            $errors[] = $pwd_err;
-        }
-    }
-
-    // ONLY proceed to database if NO errors (including password errors)
-    if (!$errors) {
-        try {
-            $photo = handle_profile_upload($_FILES['profile_photo'] ?? []);
-
-            $stmt = db()->prepare("SELECT id FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-
-            if ($stmt->fetch()) {
-                $errors[] = "Email already registered.";
-            } else {
-                $hash = password_hash($password, PASSWORD_BCRYPT);
-
-                $stmt = db()->prepare("
-                    INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
-                    VALUES (?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
-
-                $success = true;
+        // Validation
+        if ($full_name === '') $errors[] = "Full name required.";
+        if (!is_valid_email($email)) $errors[] = "Invalid email.";
+        if (!is_valid_phone($phone)) $errors[] = "Invalid phone number.";
+        
+        // Password validation - Check password BEFORE database operations
+        $password_errors = validate_password_strength($password);
+        if ($password_errors) {
+            // Add each specific password error
+            foreach ($password_errors as $pwd_err) {
+                $errors[] = $pwd_err;
             }
-        } catch (Throwable $e) {
-            $errors[] = $e->getMessage();
         }
-    }
+
+        // ONLY proceed to database if NO errors (including password errors)
+        if (!$errors) {
+            try {
+                $photo = handle_profile_upload($_FILES['profile_photo'] ?? []);
+
+                $stmt = db()->prepare("SELECT id FROM users WHERE email = ?");
+                $stmt->execute([$email]);
+
+                if ($stmt->fetch()) {
+                    $errors[] = "Email already registered.";
+                } else {
+                    $hash = password_hash($password, PASSWORD_BCRYPT);
+
+                    $stmt = db()->prepare("
+                        INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
+                        VALUES (?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
+
+                    $success = true;
+                }
+            } catch (Throwable $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+    } // End of CSRF validation else block
 }
 
 ?>
@@ -184,6 +189,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="post" enctype="multipart/form-data">
+        <?php echo csrf_field(); ?>
+        
         <!-- Profile photo upload section -->
         <div class="avatar-box">
           <div class="avatar" id="avatarPreview">
