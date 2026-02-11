@@ -116,6 +116,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       margin-bottom: 20px;
       border-radius: 4px;
     }
+
+    /* Enhanced account creation section - matching dark button style */
+    .account-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .account-section p {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    
+    .create-account-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #111827, #1f2937);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .create-account-btn:hover {
+      opacity: 0.95;
+    }
   </style>
 </head>
 <body>
@@ -168,8 +200,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <button class="btn" type="submit">Login</button>
     </form>
 
-    <!-- Link to registration page -->
-    <a class="link" href="<?= BASE_URL ?>/registration.php">Don't have an account? Register here.</a>
+    <div class="account-section">
+      <p>Don't have an account?</p>
+      <a href="<?= BASE_URL ?>/registration.php" class="create-account-btn">Create an account</a>
+    </div>
   </div>
 </div>
 </body>

@@ -22,14 +22,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_valid_email($email)) $errors[] = "Invalid email.";
     if (!is_valid_phone($phone)) $errors[] = "Invalid phone number.";
     
-    // Password validation
-      $password_errors = validate_password_strength($password);
+    // Password validation - FIX: Check password BEFORE database operations
+    $password_errors = validate_password_strength($password);
     if ($password_errors) {
-    // Generic user-facing message
-    $errors[] = "Password does not meet security requirements. Please review the requirements below.";
-    
-}
+        // Add each specific password error
+        foreach ($password_errors as $pwd_err) {
+            $errors[] = $pwd_err;
+        }
+    }
 
+    // ONLY proceed to database if NO errors (including password errors)
     if (!$errors) {
         try {
             $photo = handle_profile_upload($_FILES['profile_photo'] ?? []);
@@ -119,6 +121,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: #d9534f;
       font-weight: bold;
       margin-right: 8px;
+    }
+
+    /* Enhanced login section - matching dark button style */
+    .login-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .login-section p {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    
+    .login-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #111827, #1f2937);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .login-btn:hover {
+      opacity: 0.95;
     }
   </style>
 </head>
@@ -226,7 +260,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit">Register</button>
       </form>
 
-      <a class="link" href="<?= BASE_URL ?>/login.php">Already have an account? Login here.</a>
+      <div class="login-section">
+        <p>Already have an account?</p>
+        <a href="<?= BASE_URL ?>/login.php" class="login-btn">Login here</a>
+      </div>
     
     <?php endif; ?>
   </div>
