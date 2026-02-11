@@ -1,50 +1,79 @@
 <?php
 declare(strict_types=1);
 
+// Include security configuration and helper functions
 require_once __DIR__ . '/includes/security.php';
 
 $errors = [];
+$success = '';
 
+// Initialize login-related variables
+$email = '';
+
+// Check if form was submitted via POST method
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = strtolower(trim($_POST['email'] ?? ''));
-    $password = (string)($_POST['password'] ?? '');
+    // CSRF Protection - validate token first
+    if (!validate_csrf_token()) {
+        $errors[] = "Invalid request. Please refresh the page and try again.";
+    } else {
+        // Sanitize and retrieve email from POST data
+        $email = strtolower(trim($_POST['email'] ?? ''));
+        // Retrieve password 
+        $password = (string)($_POST['password'] ?? '');
 
-    if (!is_valid_email($email)) $errors[] = "Invalid email.";
-    if ($password === '') $errors[] = "Password is required.";
+        // Validate email format using custom validation function
+        if (!is_valid_email($email)) {
+            $errors[] = "Invalid email format.";
+        }
+        
+        // Check if password field is empty
+        if ($password === '') {
+            $errors[] = "Password is required.";
+        }
 
-    if (!$errors) {
-        if (is_locked_out($email)) {
-            $errors[] = "Too many failed attempts. Try again after " . LOCKOUT_MINUTES . " minutes.";
-        } else {
-            $stmt = db()->prepare("SELECT id, full_name, email, password_hash, role, profile_photo FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
-
-            $ok = $user && password_verify($password, $user['password_hash']);
-
-            record_login_attempt($email, $ok);
-
-            if ($ok) {
-                $_SESSION['user'] = [
-                    'id' => $user['id'],
-                    'full_name' => $user['full_name'],
-                    'email' => $user['email'],
-                    'role' => $user['role'],
-                    'profile_photo' => $user['profile_photo'],
-                ];
-
-                // Role-based redirect
-                if ($user['role'] === 'admin') {
-                    header('Location: ' . BASE_URL . '/admin.php');
-                } else {
-                    header('Location: ' . BASE_URL . '/dashboard.php');
-                }
-                exit;
+        // Proceed only if there are no validation errors
+        if (!$errors) {
+            // Check if account is locked BEFORE checking credentials
+            if (is_locked_out($email)) {
+                $errors[] = "The account '" . htmlspecialchars($email) . "' is temporarily locked due to too many failed login attempts. Please try again after " . LOCKOUT_MINUTES . " minutes, or use a different account.";
+                $email = '';
             } else {
-                $errors[] = "Invalid email or password.";
+                // Query database for user with matching email
+                $stmt = db()->prepare("SELECT id, full_name, email, password_hash, role, profile_photo FROM users WHERE email = ?");
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+
+                // Verify password against stored hash
+                $ok = $user && password_verify($password, $user['password_hash']);
+
+                // Record this login attempt for brute-force protection
+                record_login_attempt($email, $ok);
+
+                if ($ok) {
+                    // Login successful - store user data in session
+                    $_SESSION['user'] = [
+                        'id' => $user['id'],
+                        'full_name' => $user['full_name'],
+                        'email' => $user['email'],
+                        'role' => $user['role'],
+                        'profile_photo' => $user['profile_photo'],
+                    ];
+
+                    // Role-based redirect to appropriate dashboard
+                    if ($user['role'] === 'admin') {
+                        header('Location: ' . BASE_URL . '/admin.php');
+                    } else {
+                        header('Location: ' . BASE_URL . '/dashboard.php');
+                    }
+                    exit;
+                } else {
+                    // Login failed - show generic error message
+                    $errors[] = "Invalid email or password.";
+                    $email = '';
+                }
             }
         }
-    }
+    } // End of CSRF validation else block
 }
 ?>
 <!doctype html>
@@ -53,15 +82,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="utf-8">
   <title>Login</title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/styles.css">
+  <style>
+    /* Error alert styling with red theme */
+    .alert.error {
+      background-color: #fce8e8;
+      border-left: 5px solid #d9534f;
+      color: #a94442;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      list-style: none;
+    }
+    .alert.error ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .alert.error li {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    /* Custom bullet point for error messages */
+    .alert.error li:before {
+      content: "• ";
+      color: #d9534f;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    /* Success alert styling with green theme */
+    .alert.success {
+      background-color: #dff0d8;
+      border-left: 5px solid #5cb85c;
+      color: #3c763d;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+
+    /* Enhanced account creation section - matching dark button style */
+    .account-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .account-section p {
+      margin: 0 0 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    
+    .create-account-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #111827, #1f2937);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .create-account-btn:hover {
+      opacity: 0.95;
+    }
+  </style>
 </head>
 <body>
 <div class="container">
   <div class="card">
     <div class="header">
-      <h1>Welcome back</h1>
+      <h1>Welcome back!</h1>
       <p>Log in to continue</p>
     </div>
 
+    <!-- Display success message if exists -->
+    <?php if (!empty($success)): ?>
+      <div class="alert success"><?= htmlspecialchars($success) ?></div>
+    <?php endif; ?>
+
+    <!-- Display error messages if any exist -->
     <?php if (!empty($errors)): ?>
       <div class="alert error">
         <ul>
@@ -72,24 +177,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     <?php endif; ?>
 
+    <!-- Login form -->
     <form method="post">
+      <?php echo csrf_field(); ?>
+      
       <div class="field">
         <label>Email</label>
-        <input class="input" name="email" type="email" required>
+        <input 
+          class="input" 
+          name="email" 
+          type="email" 
+          value="<?= htmlspecialchars($email) ?>"
+          required
+        >
       </div>
 
       <div class="field">
         <label>Password</label>
-        <input class="input" name="password" type="password" required>
+        <input 
+          class="input" 
+          name="password" 
+          type="password" 
+          required
+        >
       </div>
 
       <button class="btn" type="submit">Login</button>
     </form>
 
-    <a class="link" href="<?= BASE_URL ?>/registration.php">Create an account</a>
-
-    <div class="help" style="margin-top:14px; text-align:center;">
-      <b>Default Admin:</b> admin@site.local / Admin@12345
+    <div class="account-section">
+      <p>Don't have an account?</p>
+      <a href="<?= BASE_URL ?>/registration.php" class="create-account-btn">Create an account</a>
     </div>
   </div>
 </div>
