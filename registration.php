@@ -51,22 +51,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $photo = handle_profile_upload($_FILES['profile_photo'] ?? []);
 
-                $stmt = db()->prepare("SELECT id FROM users WHERE email = ?");
-                $stmt->execute([$email]);
+                $stmt = db()->prepare("SELECT id, email, phone FROM users WHERE email = ? OR phone = ? LIMIT 1");
+                $stmt->execute([$email, $phone]);
+                $existing = $stmt->fetch();
 
-                if ($stmt->fetch()) {
+                if ($existing) {
+                  if (isset($existing['email']) && strtolower($existing['email']) === $email) {
                     $errors[] = "Email already registered.";
-                } else {
-                    $hash = password_hash($password, PASSWORD_BCRYPT);
+                   }
+                  if (isset($existing['phone']) && $existing['phone'] === $phone) {
+                      $errors[] = "Phone number already registered.";
+                  }
+              } else {
+                  $hash = password_hash($password, PASSWORD_BCRYPT);
 
-                    $stmt = db()->prepare("
-                        INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
-                        VALUES (?, ?, ?, ?, ?)
-                    ");
-                    $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
+                  $stmt = db()->prepare("
+                      INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
+                      VALUES (?, ?, ?, ?, ?)
+                 ");
+                 $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
 
-                    $success = true;
-                }
+                 $success = true;
+              }
+
             } catch (Throwable $e) {
                 $errors[] = $e->getMessage();
             }
