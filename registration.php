@@ -21,10 +21,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $phone     = trim($_POST['phone'] ?? '');
         $password  = $_POST['password'] ?? '';
 
+        // Profile photo validation - check if file was uploaded
+        if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] === UPLOAD_ERR_NO_FILE) {
+            $errors[] = "Profile photo is required.";
+        } elseif ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
+            // Check for other upload errors
+            $errors[] = "File upload failed. Please try again.";
+        } elseif ($_FILES['profile_photo']['size'] > MAX_UPLOAD_BYTES) {
+            $errors[] = "Image too large (max 2MB).";
+        }
+
         // Validation
         if ($full_name === '') $errors[] = "Full name required.";
         if (!is_valid_email($email)) $errors[] = "Invalid email.";
         if (!is_valid_phone($phone)) $errors[] = "Invalid phone number.";
+
         
         // Password validation - Check password BEFORE database operations
         $password_errors = validate_password_strength($password);
@@ -128,6 +139,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       margin-right: 8px;
     }
 
+    /* Avatar error state styling */
+    .avatar.error {
+      border: 2px solid #d9534f !important;
+      box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.1);
+      animation: shake 0.3s ease-in-out;
+    }
+    
+    .avatar.error span {
+      color: #d9534f;
+    }
+    
+    /* Shake animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
     /* Enhanced login section - matching dark button style */
     .login-section {
       margin-top: 24px;
@@ -193,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <!-- Profile photo upload section -->
         <div class="avatar-box">
-          <div class="avatar" id="avatarPreview">
+          <div class="avatar <?php echo (in_array('Profile photo is required.', $errors)) ? 'error' : ''; ?>" id="avatarPreview">
             <span>Photo</span>
           </div>
           <input
@@ -205,8 +234,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           >
 
           <label for="profile_photo" class="file-btn">
-            Upload profile photo
+             Upload profile photo <span style="color: #dc2626;">*</span>
           </label>
+          <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
+              Max 2MB. Formats: JPG, PNG, WebP
+          </div>
 
           <div class="file-name" id="fileName">
             No file selected
@@ -287,6 +319,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       
       if (!file) {
         fileName.textContent = "No file selected";
+        preview.innerHTML = '<span>Photo</span>';
         return;
       }
 
