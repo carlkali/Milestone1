@@ -17,4 +17,5 @@ define('LOCKOUT_MINUTES', 10);
 
 // upload settings
 define('MAX_UPLOAD_BYTES', 2 * 1024 * 1024); // 2MB
-$ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+
+$ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png'];
