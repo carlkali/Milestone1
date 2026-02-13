@@ -111,7 +111,6 @@ function handle_profile_upload(array $file): ?string {
     $ext = match ($mime) {
         'image/jpeg' => 'jpg',
         'image/png'  => 'png',
-        'image/webp' => 'webp',
         default => 'bin'
     };
 
@@ -201,8 +200,12 @@ function validate_password_strength(string $password): array {
         $errors[] = "Missing number";
     }
     
-    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+    if (!preg_match('/[!@#$%^&*]/', $password)) {
         $errors[] = "Missing special character";
+    }
+
+    if (!preg_match('/^[A-Za-z0-9!@#$%^&*]+$/', $password)) {
+        $errors[] = "Password contains invalid characters. Only letters, numbers, and !@#$%^&* are allowed";
     }
     
     if (empty($errors) && is_common_password($password)) {

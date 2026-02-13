@@ -237,14 +237,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             type="file"
             name="profile_photo"
             id="profile_photo"
-            accept=".jpg,.jpeg,.png,.webp"
+            accept=".jpg,.jpeg,.png"
           >
 
           <label for="profile_photo" class="file-btn">
              Upload profile photo <span style="color: #dc2626;">*</span>
           </label>
           <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
-              Max 2MB. Formats: JPG, PNG, WebP
+              Max 2MB. Formats: JPG and PNG
           </div>
 
           <div class="file-name" id="fileName">
@@ -288,12 +288,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- Password input -->
         <div class="field">
-          <label>Password</label>
-          <input type="password" name="password" required>
+          <label>Password </label>
+          <input 
+            type="password" 
+            name="password" 
+            id="passwordInput"
+            minlength="8" 
+            maxlength="128"
+            required
+          >
           <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
             <strong>Password requirements:</strong>
             <ul style="margin: 4px 0; padding-left: 20px; line-height: 1.6;">
-              <li>At least 8 characters</li>
+              <li>8-128 characters</li>
               <li>One uppercase letter (A-Z)</li>
               <li>One lowercase letter (a-z)</li>
               <li>One number (0-9)</li>
@@ -336,6 +343,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       img.src = URL.createObjectURL(file);
       preview.innerHTML = '';
       preview.appendChild(img);
+    });
+  }
+</script>
+
+<script>
+  const passwordInput = document.getElementById('passwordInput');
+  const charCount = document.getElementById('charCount');
+  
+  if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+      const password = this.value;
+      const length = password.length;
+      
+      // Password strength checks
+      const hasUpper = /[A-Z]/.test(password);
+      const hasLower = /[a-z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecial = /[!@#$%^&*]/.test(password);
+      const hasValidLength = length >= 8 && length <= 128; 
+      const hasOnlyValidChars = /^[A-Za-z0-9!@#$%^&*]+$/.test(password);
+      
+      // All requirements must be met
+      const isValid = hasUpper && hasLower && hasNumber && hasSpecial && hasValidLength && hasOnlyValidChars;
+       
+      // Change border color based on validation
+      if (length > 0) {
+        if (isValid) {
+          this.style.borderColor = '#16a34a'; // Green - all requirements met
+        } else {
+          this.style.borderColor = '#dc2626'; // Red - missing requirements or invalid
+        }
+      } else {
+        this.style.borderColor = '#e5e7eb'; // Default - empty field
+      }
     });
   }
 </script>

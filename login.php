@@ -197,7 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input 
           class="input" 
           name="password" 
-          type="password" 
+          type="password"
+          maxlength="128" 
           required
         >
       </div>
