@@ -18,14 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Sanitize and retrieve email from POST data
         $email = strtolower(trim($_POST['email'] ?? ''));
-        // Retrieve password 
+        // Retrieve password
         $password = (string)($_POST['password'] ?? '');
 
         // Validate email format using custom validation function
         if (!is_valid_email($email)) {
             $errors[] = "Invalid email format.";
         }
-        
+
         // Check if password field is empty
         if ($password === '') {
             $errors[] = "Password is required.";
@@ -77,140 +77,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Login</title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/styles.css">
-  <style>
-    /* Error alert styling with red theme */
-    .alert.error {
-      background-color: #fce8e8;
-      border-left: 5px solid #d9534f;
-      color: #a94442;
-      padding: 15px 20px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-      list-style: none;
-    }
-    .alert.error ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .alert.error li {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    /* Custom bullet point for error messages */
-    .alert.error li:before {
-      content: "• ";
-      color: #d9534f;
-      font-weight: bold;
-      margin-right: 8px;
-    }
-    /* Success alert styling with green theme */
-    .alert.success {
-      background-color: #dff0d8;
-      border-left: 5px solid #5cb85c;
-      color: #3c763d;
-      padding: 15px 20px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-    }
-
-    /* Enhanced account creation section - matching dark button style */
-    .account-section {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-      text-align: center;
-    }
-    
-    .account-section p {
-      margin: 0 0 12px 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    
-    .create-account-btn {
-      display: inline-block;
-      padding: 12px 24px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #111827, #1f2937);
-      color: #fff;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 700;
-      transition: all 0.2s ease;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .create-account-btn:hover {
-      opacity: 0.95;
-    }
-  </style>
 </head>
+
 <body>
-<div class="container">
-  <div class="card">
-    <div class="header">
-      <h1>Welcome back!</h1>
-      <p>Log in to continue</p>
-    </div>
-
-    <!-- Display success message if exists -->
-    <?php if (!empty($success)): ?>
-      <div class="alert success"><?= htmlspecialchars($success) ?></div>
-    <?php endif; ?>
-
-    <!-- Display error messages if any exist -->
-    <?php if (!empty($errors)): ?>
-      <div class="alert error">
-        <ul>
-          <?php foreach ($errors as $e): ?>
-            <li><?= htmlspecialchars($e) ?></li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-    <?php endif; ?>
-
-    <!-- Login form -->
-    <form method="post">
-      <?php echo csrf_field(); ?>
-      
-      <div class="field">
-        <label>Email</label>
-        <input 
-          class="input" 
-          name="email" 
-          type="email" 
-          value="<?= htmlspecialchars($email) ?>"
-          required
-        >
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <h1>Welcome back!</h1>
+        <p>Log in to continue</p>
       </div>
 
-      <div class="field">
-        <label>Password</label>
-        <input 
-          class="input" 
-          name="password" 
-          type="password"
-          maxlength="128" 
-          required
-        >
+      <!-- Display success message if exists -->
+      <?php if (!empty($success)): ?>
+        <div class="alert success"><?= htmlspecialchars($success) ?></div>
+      <?php endif; ?>
+
+      <!-- Display error messages if any exist -->
+      <?php if (!empty($errors)): ?>
+        <div class="alert error">
+          <ul>
+            <?php foreach ($errors as $e): ?>
+              <li><?= htmlspecialchars($e) ?></li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+      <?php endif; ?>
+
+      <!-- Login form -->
+      <form method="post">
+        <?= csrf_field(); ?>
+
+        <div class="field">
+          <label>Email</label>
+          <input
+            class="input"
+            name="email"
+            type="email"
+            value="<?= htmlspecialchars($email) ?>"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <input
+            class="input"
+            name="password"
+            type="password"
+            maxlength="128"
+            required
+          >
+        </div>
+
+        <button class="btn" type="submit">Login</button>
+      </form>
+
+      <div class="account-section">
+        <p>Don't have an account?</p>
+        <a href="<?= BASE_URL ?>/registration.php" class="create-account-btn">Create an account</a>
       </div>
-
-      <button class="btn" type="submit">Login</button>
-    </form>
-
-    <div class="account-section">
-      <p>Don't have an account?</p>
-      <a href="<?= BASE_URL ?>/registration.php" class="create-account-btn">Create an account</a>
     </div>
   </div>
-</div>
 </body>
 </html>

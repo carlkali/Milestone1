@@ -36,11 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!is_valid_email($email)) $errors[] = "Invalid email.";
         if (!is_valid_phone($phone)) $errors[] = "Invalid phone number.";
 
-        
         // Password validation - Check password BEFORE database operations
         $password_errors = validate_password_strength($password);
         if ($password_errors) {
-            // Add each specific password error
             foreach ($password_errors as $pwd_err) {
                 $errors[] = $pwd_err;
             }
@@ -56,160 +54,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existing = $stmt->fetch();
 
                 if ($existing) {
-                  if (isset($existing['email']) && strtolower($existing['email']) === $email) {
-                    $errors[] = "Email already registered.";
-                   }
-                  if (isset($existing['phone']) && $existing['phone'] === $phone) {
-                      $errors[] = "Phone number already registered.";
-                  }
-              } else {
-                  $hash = password_hash($password, PASSWORD_BCRYPT);
+                    if (isset($existing['email']) && strtolower($existing['email']) === $email) {
+                        $errors[] = "Email already registered.";
+                    }
+                    if (isset($existing['phone']) && $existing['phone'] === $phone) {
+                        $errors[] = "Phone number already registered.";
+                    }
+                } else {
+                    $hash = password_hash($password, PASSWORD_BCRYPT);
 
-                  $stmt = db()->prepare("
-                      INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
-                      VALUES (?, ?, ?, ?, ?)
-                 ");
-                 $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
+                    $stmt = db()->prepare("
+                        INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
+                        VALUES (?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
 
-                 $success = true;
-              }
-
+                    $success = true;
+                }
             } catch (Throwable $e) {
                 $errors[] = $e->getMessage();
             }
         }
-    } // End of CSRF validation else block
+    }
 }
-
 ?>
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Register</title>
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/styles.css">
-  <style>
-    .alert.success {
-      background-color: #dff0d8;
-      border-left: 5px solid #5cb85c;
-      color: #3c763d;
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-      text-align: center;
-    }
-    .alert.success h2 {
-      margin: 0 0 10px 0;
-      font-size: 24px;
-      color: #3c763d;
-    }
-    .alert.success p {
-      margin: 10px 0;
-      font-size: 16px;
-    }
-    .alert.success .btn-login {
-      display: inline-block;
-      margin-top: 15px;
-      padding: 12px 30px;
-      background-color: #5cb85c;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-      transition: background-color 0.3s;
-    }
-    .alert.success .btn-login:hover {
-      background-color: #4cae4c;
-    }
-    .alert.error {
-      background-color: #fce8e8;
-      border-left: 5px solid #d9534f;
-      color: #a94442;
-      padding: 15px 20px;
-      margin-bottom: 20px;
-      border-radius: 4px;
-    }
-    .alert.error ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .alert.error li {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-    .alert.error li:before {
-      content: "• ";
-      color: #d9534f;
-      font-weight: bold;
-      margin-right: 8px;
-    }
-
-    /* Avatar error state styling */
-    .avatar.error {
-      border: 2px solid #d9534f !important;
-      box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.1);
-      animation: shake 0.3s ease-in-out;
-    }
-    
-    .avatar.error span {
-      color: #d9534f;
-    }
-    
-    /* Shake animation */
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-
-    /* Enhanced login section - matching dark button style */
-    .login-section {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid var(--border);
-      text-align: center;
-    }
-    
-    .login-section p {
-      margin: 0 0 12px 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    
-    .login-btn {
-      display: inline-block;
-      padding: 12px 24px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #111827, #1f2937);
-      color: #fff;
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 700;
-      transition: all 0.2s ease;
-      border: none;
-      cursor: pointer;
-    }
-    
-    .login-btn:hover {
-      opacity: 0.95;
-    }
-  </style>
 </head>
+
 <body>
 <div class="container">
   <div class="card">
-    
+
     <?php if ($success): ?>
-      <div class="alert success">
+      <div class="alert success success-card">
         <h2>Registration Successful!</h2>
         <p>Your account has been created successfully.</p>
         <p>You can now log in with your credentials.</p>
         <a href="<?= BASE_URL ?>/login.php" class="btn-login">Go to Login Page</a>
       </div>
     <?php else: ?>
-      
+
       <div class="header">
         <h1>Create Account</h1>
       </div>
@@ -225,13 +114,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="post" enctype="multipart/form-data">
-        <?php echo csrf_field(); ?>
-        
+        <?= csrf_field(); ?>
+
         <!-- Profile photo upload section -->
         <div class="avatar-box">
-          <div class="avatar <?php echo (in_array('Profile photo is required.', $errors)) ? 'error' : ''; ?>" id="avatarPreview">
+          <div class="avatar <?= in_array('Profile photo is required.', $errors, true) ? 'error' : '' ?>" id="avatarPreview">
             <span>Photo</span>
           </div>
+
           <input
             class="file-input"
             type="file"
@@ -241,10 +131,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           >
 
           <label for="profile_photo" class="file-btn">
-             Upload profile photo <span style="color: #dc2626;">*</span>
+            Upload profile photo <span class="req">*</span>
           </label>
-          <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
-              Max 2MB. Formats: JPG and PNG
+
+          <div class="help-text">
+            Max 2MB. Formats: JPG and PNG
           </div>
 
           <div class="file-name" id="fileName">
@@ -255,8 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Full name input field -->
         <div class="field">
           <label>Full Name</label>
-          <input 
-            name="full_name" 
+          <input
+            name="full_name"
             value="<?= htmlspecialchars($full_name) ?>"
             required
           >
@@ -265,9 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Email input field -->
         <div class="field">
           <label>Email</label>
-          <input 
-            type="email" 
-            name="email" 
+          <input
+            type="email"
+            name="email"
             value="<?= htmlspecialchars($email) ?>"
             required
           >
@@ -276,30 +167,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Phone input -->
         <div class="field">
           <label>Phone</label>
-          <input 
-            name="phone" 
+          <input
+            name="phone"
             value="<?= htmlspecialchars($phone) ?>"
-            placeholder="09XXXXXXXXX" 
-            pattern="^(09\d{9}|\+63\d{10})$" 
-            title="Format: 09XXXXXXXXX or +63XXXXXXXXXX" 
+            placeholder="09XXXXXXXXX"
+            pattern="^(09\d{9}|\+63\d{10})$"
+            title="Format: 09XXXXXXXXX or +63XXXXXXXXXX"
             required
           >
         </div>
 
         <!-- Password input -->
         <div class="field">
-          <label>Password </label>
-          <input 
-            type="password" 
-            name="password" 
+          <label>Password</label>
+          <input
+            type="password"
+            name="password"
             id="passwordInput"
-            minlength="8" 
+            minlength="8"
             maxlength="128"
             required
           >
-          <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">
+
+          <div class="pw-help">
             <strong>Password requirements:</strong>
-            <ul style="margin: 4px 0; padding-left: 20px; line-height: 1.6;">
+            <ul>
               <li>8-128 characters</li>
               <li>One uppercase letter (A-Z)</li>
               <li>One lowercase letter (a-z)</li>
@@ -317,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p>Already have an account?</p>
         <a href="<?= BASE_URL ?>/login.php" class="login-btn">Login here</a>
       </div>
-    
+
     <?php endif; ?>
   </div>
 </div>
@@ -330,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if (fileInput) {
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
-      
+
       if (!file) {
         fileName.textContent = "No file selected";
         preview.innerHTML = '<span>Photo</span>';
@@ -349,33 +241,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
   const passwordInput = document.getElementById('passwordInput');
-  const charCount = document.getElementById('charCount');
-  
+
   if (passwordInput) {
     passwordInput.addEventListener('input', function() {
       const password = this.value;
       const length = password.length;
-      
-      // Password strength checks
+
       const hasUpper = /[A-Z]/.test(password);
       const hasLower = /[a-z]/.test(password);
       const hasNumber = /[0-9]/.test(password);
       const hasSpecial = /[!@#$%^&*]/.test(password);
-      const hasValidLength = length >= 8 && length <= 128; 
+      const hasValidLength = length >= 8 && length <= 128;
       const hasOnlyValidChars = /^[A-Za-z0-9!@#$%^&*]+$/.test(password);
-      
-      // All requirements must be met
+
       const isValid = hasUpper && hasLower && hasNumber && hasSpecial && hasValidLength && hasOnlyValidChars;
-       
-      // Change border color based on validation
+
       if (length > 0) {
-        if (isValid) {
-          this.style.borderColor = '#16a34a'; // Green - all requirements met
-        } else {
-          this.style.borderColor = '#dc2626'; // Red - missing requirements or invalid
-        }
+        this.classList.toggle('pw-ok', isValid);
+        this.classList.toggle('pw-bad', !isValid);
       } else {
-        this.style.borderColor = '#e5e7eb'; // Default - empty field
+        this.classList.remove('pw-ok', 'pw-bad');
       }
     });
   }
