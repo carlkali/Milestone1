@@ -16,6 +16,26 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `books`
+--
+
+DROP TABLE IF EXISTS `books`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `books` (
+  `book_id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` enum('Graphic Novel','Fiction','Non-Fiction','Fantasy','Romance','Horror') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `author` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `cover_image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`book_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `login_attempts`
 --
 
@@ -31,18 +51,56 @@ CREATE TABLE `login_attempts` (
   PRIMARY KEY (`id`),
   KEY `idx_email_time` (`email`,`attempted_at`),
   KEY `idx_ip_time` (`ip_address`,`attempted_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=80 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `login_attempts`
+-- Table structure for table `reservations`
 --
 
-LOCK TABLES `login_attempts` WRITE;
-/*!40000 ALTER TABLE `login_attempts` DISABLE KEYS */;
-INSERT INTO `login_attempts` VALUES (1,'test@dlsu.edu.ph','::1',1,'2026-02-03 04:20:58'),(2,'admin@site.local','::1',0,'2026-02-03 04:21:25'),(3,'admin@site.local','::1',0,'2026-02-03 04:22:02'),(4,'admin@site.local','::1',1,'2026-02-03 04:26:05'),(5,'test@dlsu.edu.ph','::1',1,'2026-02-03 05:07:39'),(6,'test@dlsu.edu.ph','::1',0,'2026-02-03 05:11:38'),(7,'test@dlsu.edu.ph','::1',1,'2026-02-03 05:11:44'),(8,'admin@site.local','::1',1,'2026-02-03 05:20:13'),(9,'admin@site.local','::1',1,'2026-02-03 05:29:49'),(10,'test@dlsu.edu.ph','::1',1,'2026-02-03 05:30:13'),(11,'test@dlsu.edu.ph','::1',0,'2026-02-04 06:04:03'),(12,'admin@site.local','::1',1,'2026-02-04 06:04:20'),(13,'test@dlsu.edu.ph','::1',0,'2026-02-04 06:04:37'),(14,'admin@site.local','::1',1,'2026-02-04 06:05:54'),(15,'test@dlsu.edu.ph','::1',1,'2026-02-04 06:06:04'),(16,'test2@gmail.com','::1',1,'2026-02-12 05:41:23'),(17,'admin@site.local','::1',1,'2026-02-12 05:43:05'),(18,'admin@site.local','::1',1,'2026-02-12 07:38:32'),(19,'alexpereira@gmail.com','::1',1,'2026-02-12 08:21:04'),(20,'jonjones@gmail.com','::1',0,'2026-02-12 08:23:39'),(21,'jonjones@gmail.com','::1',1,'2026-02-12 08:23:40'),(22,'jonjones@gmail.com','::1',1,'2026-02-12 08:23:50'),(23,'jonjones@gmail.com','::1',0,'2026-02-12 08:24:03'),(24,'jonjones@gmail.com','::1',1,'2026-02-12 08:24:04'),(25,'jonjones@gmail.com','::1',1,'2026-02-12 08:24:08'),(26,'alexpereira@gmail.com','::1',0,'2026-02-12 08:24:19'),(27,'alexpereira@gmail.com','::1',0,'2026-02-12 08:24:22'),(28,'alexpereira@gmail.com','::1',0,'2026-02-12 08:24:24'),(29,'alexpereira@gmail.com','::1',0,'2026-02-12 08:24:26'),(30,'alexpereira@gmail.com','::1',0,'2026-02-12 08:24:28'),(31,'alexpereira@gmail.com','::1',0,'2026-02-12 08:53:38'),(32,'jonjones@gmail.com','::1',0,'2026-02-12 09:08:18'),(33,'jonjones1@gmail.com','::1',0,'2026-02-12 09:08:23'),(34,'jonjones1@gmail.com','::1',0,'2026-02-12 09:08:24'),(35,'jonjones1@gmail.com','::1',0,'2026-02-12 09:08:26'),(36,'jonjones1@gmail.com','::1',0,'2026-02-12 09:08:27'),(37,'jonjones1@gmail.com','::1',0,'2026-02-12 09:08:29'),(38,'jonjones@gmail.com','::1',0,'2026-02-12 09:08:59'),(39,'jonjones@gmail.com','::1',0,'2026-02-12 09:09:02'),(40,'jonjones@gmail.com','::1',0,'2026-02-12 09:09:05'),(41,'jonjones@gmail.com','::1',0,'2026-02-12 09:09:08'),(42,'jonjones@gmail.com','::1',1,'2026-02-12 09:19:43'),(43,'jonjones@gmail.com','::1',1,'2026-02-12 09:19:53'),(44,'jonjones@gmail.com','::1',0,'2026-02-12 09:19:57');
-/*!40000 ALTER TABLE `login_attempts` ENABLE KEYS */;
-UNLOCK TABLES;
+DROP TABLE IF EXISTS `reservations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `reservations` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `book_id` int NOT NULL,
+  `status` enum('pending','approved','returned','cancelled','recalled') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `requested_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `due_date` timestamp NULL DEFAULT NULL,
+  `returned_at` timestamp NULL DEFAULT NULL,
+  `is_overdue` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_user` (`user_id`),
+  KEY `idx_book` (`book_id`),
+  KEY `idx_status` (`status`),
+  CONSTRAINT `fk_res_book` FOREIGN KEY (`book_id`) REFERENCES `books` (`book_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_res_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `reviews`
+--
+
+DROP TABLE IF EXISTS `reviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `reviews` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `book_id` int NOT NULL,
+  `rating` tinyint NOT NULL DEFAULT '5',
+  `body` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_user_book` (`user_id`,`book_id`),
+  KEY `idx_book` (`book_id`),
+  CONSTRAINT `fk_rev_book` FOREIGN KEY (`book_id`) REFERENCES `books` (`book_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_rev_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `users`
@@ -63,18 +121,8 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`),
   UNIQUE KEY `uniq_users_phone` (`phone`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `users`
---
-
-LOCK TABLES `users` WRITE;
-/*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'Default Admin','admin@site.local','0000000000','$2y$10$/1qT/WK97OopeFXpliyUZ..ypbVWTvifjckJBOEpf2z.CMJzpJXR2','admin',NULL,'2026-02-03 04:02:12');
-/*!40000 ALTER TABLE `users` ENABLE KEYS */;
-UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -85,4 +133,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-02-12 17:37:51
+-- Dump completed on 2026-03-06  0:21:24
