@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($user['role'] === 'admin') {
                         header('Location: ' . BASE_URL . '/admin.php');
                     } else {
-                        header('Location: ' . BASE_URL . '/dashboard.php');
+                        header('Location: ' . BASE_URL . '/index.php');
                     }
                     exit;
                 } else {

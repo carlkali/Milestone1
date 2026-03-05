@@ -551,3 +551,395 @@ button:hover{
   padding-left:20px;
   line-height:1.6;
 }
+
+/* Shared input style */
+
+.form-control{
+width:100%;
+padding:14px 16px;
+border-radius:14px;
+border:1px solid rgba(0,0,0,0.15);
+background:#ffffff;
+font-size:16px;
+margin-bottom:16px;
+box-sizing:border-box;
+outline:none;
+}
+
+/* Focus effect */
+
+.form-control:focus{
+border-color:#4c6fff;
+box-shadow:0 0 0 2px rgba(76,111,255,0.15);
+}
+
+/* Textarea improvement */
+
+textarea.form-control{
+min-height:140px;
+resize:vertical;
+}
+
+/* Better dropdown */
+
+select.form-control{
+appearance:none;
+-webkit-appearance:none;
+-moz-appearance:none;
+cursor:pointer;
+background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+background-repeat:no-repeat;
+background-position:right 14px center;
+padding-right:40px;
+}
+
+/* Book catalog layout */
+
+.book-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+gap:24px;
+margin-top:20px;
+}
+
+.book-card{
+background:white;
+border-radius:16px;
+padding:16px;
+box-shadow:0 6px 20px rgba(0,0,0,0.08);
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.book-cover{
+width:100%;
+height:260px;
+object-fit:cover;
+border-radius:12px;
+}
+
+.book-author{
+font-size:14px;
+opacity:0.7;
+}
+
+.book-type{
+font-size:12px;
+background:#eef2ff;
+padding:4px 10px;
+border-radius:20px;
+width:fit-content;
+}
+
+.book-desc{
+font-size:13px;
+opacity:0.8;
+}
+
+/* Success toast popup */
+
+.toast-success{
+position:fixed;
+top:20px;
+right:20px;
+background:#16a34a;
+color:white;
+padding:14px 22px;
+border-radius:10px;
+font-weight:500;
+box-shadow:0 8px 20px rgba(0,0,0,0.25);
+z-index:9999;
+animation:toastSlide 0.3s ease;
+}
+
+/* slide animation */
+
+@keyframes toastSlide{
+from{
+opacity:0;
+transform:translateY(-10px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+.book-link{
+text-decoration:none;
+color:inherit;
+display:block;
+}
+
+.book-link:hover .book-card{
+transform:translateY(-3px);
+box-shadow:0 10px 26px rgba(0,0,0,0.12);
+transition:0.15s ease;
+}
+
+.book-detail{
+display:flex;
+gap:28px;
+align-items:flex-start;
+}
+
+.book-detail-cover{
+width:260px;
+height:360px;
+object-fit:cover;
+border-radius:14px;
+box-shadow:0 10px 24px rgba(0,0,0,0.12);
+}
+
+.book-detail-info{
+flex:1;
+min-width:0;
+}
+
+@media (max-width: 900px){
+.book-detail{
+flex-direction:column;
+}
+.book-detail-cover{
+width:100%;
+height:auto;
+max-height:520px;
+}
+}
+
+.clear-search{
+display:flex;
+align-items:center;
+padding:12px 16px;
+background:#e5e7eb;
+border-radius:10px;
+text-decoration:none;
+color:#111;
+font-weight:500;
+}
+
+.nav-right{
+display:flex;
+align-items:center;
+gap:12px;
+}
+
+.user-chip{
+display:flex;
+align-items:center;
+gap:10px;
+padding:8px 12px;
+border-radius:999px;
+text-decoration:none;
+color:white;
+background:rgba(255,255,255,0.08);
+border:1px solid rgba(255,255,255,0.15);
+}
+
+.user-chip:hover{
+background:rgba(255,255,255,0.12);
+}
+
+.user-avatar{
+width:34px;
+height:34px;
+border-radius:999px;
+object-fit:cover;
+}
+
+.user-initial{
+width:34px;
+height:34px;
+border-radius:999px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:800;
+background:rgba(255,255,255,0.15);
+}
+
+.user-name{
+font-weight:600;
+font-size:14px;
+white-space:nowrap;
+max-width:180px;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+/* Header right side */
+.nav-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+/* User chip in header */
+.user-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 12px;
+  border-radius:999px;
+  text-decoration:none;
+  color:#fff;
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+}
+
+/* IMPORTANT: force avatar size (fixes huge image) */
+.user-avatar{
+  width:34px !important;
+  height:34px !important;
+  border-radius:999px !important;
+  object-fit:cover !important;
+  display:block;
+}
+
+/* If no profile photo */
+.user-initial{
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  background:rgba(255,255,255,0.15);
+  color:#fff;
+}
+
+/* User name */
+.user-name{
+  font-weight:600;
+  font-size:14px;
+  white-space:nowrap;
+  max-width:160px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Reviews layout */
+.reviews-wrap{
+  margin-top:28px;
+}
+
+.reviews-title{
+  font-size:20px;
+  font-weight:800;
+  margin:0 0 14px 0;
+}
+
+.reviews-subtitle{
+  font-size:16px;
+  font-weight:800;
+  margin:18px 0 10px 0;
+}
+
+.muted{
+  opacity:0.75;
+}
+
+/* Review list */
+.reviews-list{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:10px;
+}
+
+.review-card{
+  background:#fff;
+  border:1px solid rgba(0,0,0,0.08);
+  border-radius:14px;
+  padding:14px 16px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.06);
+}
+
+.review-header{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.review-avatar{
+  width:42px;
+  height:42px;
+  border-radius:999px;
+  object-fit:cover;
+  display:block;
+}
+
+.review-avatar-fallback{
+  width:42px;
+  height:42px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  background:rgba(0,0,0,0.08);
+}
+
+.review-meta{
+  flex:1;
+  min-width:0;
+}
+
+.review-name{
+  font-weight:800;
+}
+
+.review-stars{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:2px;
+  font-size:14px;
+}
+
+.star-on{ opacity:1; }
+.star-off{ opacity:0.25; }
+
+.review-date{
+  margin-left:10px;
+  opacity:0.6;
+  font-size:12px;
+}
+
+.review-body{
+  line-height:1.6;
+  opacity:0.9;
+}
+
+/* Review form */
+.review-form-wrap{
+  margin-top:18px;
+  padding-top:14px;
+  border-top:1px solid rgba(0,0,0,0.08);
+}
+
+.review-form{
+  margin-top:10px;
+}
+/* ===== Book Reservation Tags (Catalog) ===== */
+.book-reserved-tag{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  width:fit-content;
+}
+.tag-reserved{
+  background:#fee2e2;
+  color:#991b1b;
+  border:1px solid #fecaca;
+}
+.tag-pending{
+  background:#fef9c3;
+  color:#713f12;
+  border:1px solid #fde047;
+}

@@ -21,9 +21,14 @@ $users = db()
 <body class="dashboard">
   <!-- Header -->
   <header class="dash-header">
+  <div style="display:flex; align-items:center; gap:16px;">
     <div class="dash-brand">Admin Panel</div>
-    <a class="logout" href="<?= BASE_URL ?>/logout.php">Logout</a>
-  </header>
+    <a class="logout" href="<?= BASE_URL ?>/admin_reservations.php">Reservations</a>
+    <a class="logout" href="<?= BASE_URL ?>/add_book.php">Add Book</a>
+  </div>
+
+  <a class="logout" href="<?= BASE_URL ?>/logout.php">Logout</a>
+</header>
 
   <!-- Content -->
   <main class="dash-main">
