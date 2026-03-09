@@ -4,24 +4,24 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/reservations.php';
+require_once __DIR__ . '/includes/logger.php';
 
 require_admin();
 
 mark_overdue_reservations();
 
-$flash = '';
+$flash     = '';
 $flashType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!validate_csrf_token()) {
-        $flash = "Invalid request.";
+        $flash     = "Invalid request.";
         $flashType = 'error';
     } else {
         $action = $_POST['action'];
-        $resId = (int)($_POST['reservation_id'] ?? 0);
+        $resId  = (int)($_POST['reservation_id'] ?? 0);
 
         if ($action === 'approve' && $resId) {
-            // Set approved + due_date = now + 7 days
             $stmt = db()->prepare("
                 UPDATE reservations
                 SET status = 'approved',
@@ -30,23 +30,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 WHERE id = ? AND status = 'pending'
             ");
             $stmt->execute([$resId]);
-            $flash = "Reservation approved. Due date set to 7 days from now.";
+
+            // ✅ Admin log only — no duplicate in transaction log
+            log_admin('INFO', 'Reservation approved', [
+                'reservation_id' => $resId,
+                'approved_by'    => $_SESSION['user']['email'],
+            ]);
+
+            $flash     = "Reservation approved. Due date set to 7 days from now.";
             $flashType = 'success';
 
         } elseif ($action === 'reject' && $resId) {
-            $stmt = db()->prepare("UPDATE reservations SET status='cancelled' WHERE id=? AND status='pending'");
+            $stmt = db()->prepare("
+                UPDATE reservations
+                SET status = 'cancelled'
+                WHERE id = ? AND status = 'pending'
+            ");
             $stmt->execute([$resId]);
-            $flash = "Reservation request rejected.";
+
+            // ✅ Admin log only
+            log_admin('INFO', 'Reservation rejected', [
+                'reservation_id' => $resId,
+                'rejected_by'    => $_SESSION['user']['email'],
+            ]);
+
+            $flash     = "Reservation request rejected.";
             $flashType = 'success';
 
         } elseif ($action === 'recall' && $resId) {
+
+            // ✅ Fetch book_id FIRST before using it
+            $lookup = db()->prepare("SELECT book_id FROM reservations WHERE id = ?");
+            $lookup->execute([$resId]);
+            $bookId = (int)($lookup->fetchColumn() ?: 0);
+
             $stmt = db()->prepare("
                 UPDATE reservations
                 SET status = 'recalled', returned_at = NOW()
                 WHERE id = ? AND status = 'approved'
             ");
             $stmt->execute([$resId]);
-            $flash = "Book reservation recalled.";
+
+            // Cancel any pending reservations for the same book
+            if ($bookId) {
+                $stmt2 = db()->prepare("
+                    UPDATE reservations
+                    SET status = 'cancelled'
+                    WHERE book_id = ?
+                      AND status = 'pending'
+                      AND id != ?
+                ");
+                $stmt2->execute([$bookId, $resId]);
+            }
+
+            // ✅ Admin log only
+            log_admin('INFO', 'Reservation recalled', [
+                'reservation_id' => $resId,
+                'book_id'        => $bookId,
+                'recalled_by'    => $_SESSION['user']['email'],
+            ]);
+
+            $flash     = "Book reservation recalled.";
             $flashType = 'success';
         }
     }
@@ -55,9 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $statusFilter = $_GET['status'] ?? 'all';
 $reservations = get_all_reservations($statusFilter === 'all' ? null : $statusFilter);
 
-// Count per status for tab badges
 $countStmt = db()->query("SELECT status, COUNT(*) as cnt FROM reservations GROUP BY status");
-$counts = [];
+$counts    = [];
 foreach ($countStmt->fetchAll() as $row) {
     $counts[$row['status']] = (int)$row['cnt'];
 }
@@ -89,7 +132,6 @@ $countAll = array_sum($counts);
 }
 .tab:hover{ background:#f3f4f6; }
 .tab.active{ background:#111827; color:#fff; border-color:#111827; }
-
 .badge{
   display:inline-block;
   background:rgba(0,0,0,0.12);
@@ -99,7 +141,6 @@ $countAll = array_sum($counts);
   margin-left:4px;
 }
 .tab.active .badge{ background:rgba(255,255,255,0.2); }
-
 .res-row td{ vertical-align:middle; white-space:normal !important; }
 .res-thumb{ width:38px; height:52px; object-fit:cover; border-radius:6px; }
 .res-thumb-ph{
@@ -107,7 +148,6 @@ $countAll = array_sum($counts);
   border-radius:6px; display:flex; align-items:center;
   justify-content:center; font-size:18px;
 }
-
 .status-pill{ display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700; }
 .status-pending  { background:#fef9c3; color:#713f12; border:1px solid #fde047; }
 .status-approved { background:#dcfce7; color:#166534; border:1px solid #86efac; }
@@ -115,7 +155,6 @@ $countAll = array_sum($counts);
 .status-cancelled{ background:#f3f4f6; color:#374151; border:1px solid #d1d5db; }
 .status-recalled { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
 .status-overdue  { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
-
 .btn-action{
   padding:7px 14px;
   border:none;
@@ -132,7 +171,6 @@ $countAll = array_sum($counts);
 .btn-reject:hover{ background:#dc2626; }
 .btn-recall{ background:#f97316; color:#fff; }
 .btn-recall:hover{ background:#ea580c; }
-
 .action-cell{ display:flex; gap:8px; flex-wrap:wrap; }
 </style>
 </head>
@@ -159,7 +197,6 @@ $countAll = array_sum($counts);
     </div>
   <?php endif; ?>
 
-  <!-- Filter Tabs -->
   <div class="tab-bar">
     <?php
     $tabs = [
@@ -171,11 +208,10 @@ $countAll = array_sum($counts);
       'recalled'  => 'Recalled',
     ];
     foreach ($tabs as $key => $label):
-      $cnt = $key === 'all' ? $countAll : ($counts[$key] ?? 0);
+      $cnt      = $key === 'all' ? $countAll : ($counts[$key] ?? 0);
       $isActive = $statusFilter === $key;
     ?>
-      <a class="tab <?= $isActive ? 'active' : '' ?>"
-         href="?status=<?= $key ?>">
+      <a class="tab <?= $isActive ? 'active' : '' ?>" href="?status=<?= $key ?>">
         <?= $label ?>
         <?php if ($cnt > 0): ?>
           <span class="badge"><?= $cnt ?></span>
@@ -223,15 +259,15 @@ $countAll = array_sum($counts);
             </td>
             <td>
               <?php if ($res['is_overdue'] && $res['status'] === 'approved'): ?>
-                <span class="status-pill status-overdue">⚠️ Overdue</span>
+                <span class="status-pill status-overdue">Overdue</span>
               <?php else: ?>
                 <span class="status-pill status-<?= htmlspecialchars($res['status']) ?>">
                   <?= match($res['status']) {
-                    'pending'   => '⏳ Pending',
-                    'approved'  => '✅ Approved',
-                    'returned'  => '✔ Returned',
-                    'cancelled' => '✖ Cancelled',
-                    'recalled'  => '🔙 Recalled',
+                    'pending'   => 'Pending',
+                    'approved'  => 'Approved',
+                    'returned'  => 'Returned',
+                    'cancelled' => 'Cancelled',
+                    'recalled'  => 'Recalled',
                     default     => ucfirst($res['status'])
                   } ?>
                 </span>
@@ -248,13 +284,13 @@ $countAll = array_sum($counts);
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="approve">
                     <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
-                    <button type="submit" class="btn-action btn-approve">✓ Approve</button>
+                    <button type="submit" class="btn-action btn-approve">Approve</button>
                   </form>
                   <form method="post" style="margin:0;">
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="reject">
                     <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
-                    <button type="submit" class="btn-action btn-reject">✕ Reject</button>
+                    <button type="submit" class="btn-action btn-reject">Reject</button>
                   </form>
 
                 <?php elseif ($res['status'] === 'approved'): ?>
@@ -262,7 +298,7 @@ $countAll = array_sum($counts);
                     <?= csrf_field() ?>
                     <input type="hidden" name="action" value="recall">
                     <input type="hidden" name="reservation_id" value="<?= (int)$res['id'] ?>">
-                    <button type="submit" class="btn-action btn-recall">🔙 Recall</button>
+                    <button type="submit" class="btn-action btn-recall">Recall</button>
                   </form>
 
                 <?php else: ?>

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/logger.php';
 
 require_admin();
 
@@ -88,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     VALUES (?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([$title, $type, $author, $description, $coverPath]);
-
+                log_admin('INFO', 'New book added', ['title' => $title, 'author' => $author]);
                 // ✅ PRG pattern (prevents duplicates on refresh)
                 header("Location: add_book.php?success=1");
                 exit;

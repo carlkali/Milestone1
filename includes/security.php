@@ -214,3 +214,53 @@ function validate_password_strength(string $password): array {
     
     return $errors;
 }
+
+
+// ==================== ERROR HANDLING ====================
+
+function register_error_handlers(): void {
+    if (DEBUG) {
+        // ✅ Local: show full errors on screen
+        ini_set('display_errors', '1');
+        ini_set('display_startup_errors', '1');
+        error_reporting(E_ALL);
+    } else {
+        // ✅ Production: hide errors, show generic page
+        ini_set('display_errors', '0');
+        ini_set('display_startup_errors', '0');
+        error_reporting(0);
+
+        // Catch unhandled exceptions → show 500 page
+        set_exception_handler(function (Throwable $e): void {
+            // Log the full error to file
+            $logFile = __DIR__ . '/../logs/error_' . date('Y-m-d') . '.log';
+            $entry   = sprintf(
+                "[%s] [EXCEPTION] %s in %s on line %d\nTrace:\n%s\n\n",
+                date('Y-m-d H:i:s'),
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine(),
+                $e->getTraceAsString()
+            );
+            file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
+
+            // Show generic 500 page to user
+            require __DIR__ . '/../errors/500.php';
+            exit;
+        });
+
+        // Catch PHP errors → log and show 500 page
+        set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
+            $logFile = __DIR__ . '/../logs/error_' . date('Y-m-d') . '.log';
+            $entry   = sprintf(
+                "[%s] [PHP_ERROR] %s in %s on line %d\n\n",
+                date('Y-m-d H:i:s'),
+                $message,
+                $file,
+                $line
+            );
+            file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
+            return true;
+        });
+    }
+}

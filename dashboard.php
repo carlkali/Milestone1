@@ -31,6 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 WHERE id = ? AND user_id = ? AND status = 'approved'
             ");
             $stmt->execute([$resId, $userId]);
+            log_auth('INFO', 'Book returned', [
+            'user_id'        => $userId,
+                  'reservation_id' => $resId,
+            ]);
             $flash = "Book returned successfully. Thank you!";
             $flashType = 'success';
         } elseif ($action === 'cancel' && $resId) {
@@ -40,6 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 WHERE id = ? AND user_id = ? AND status = 'pending'
             ");
             $stmt->execute([$resId, $userId]);
+            log_auth('INFO', 'Reservation cancelled by user', [
+            'user_id'        => $userId,
+            'reservation_id' => $resId,
+    ]);
             $flash = "Reservation request cancelled.";
             $flashType = 'success';
         }
@@ -173,19 +181,49 @@ $historyReservations = array_filter($reservations, fn($r) => in_array($r['status
   <div style="width:100%; max-width:680px;">
 
     <!-- Profile Card -->
-    <div class="profile-card" style="margin-bottom:24px;">
-      <div class="profile-avatar">
-        <?php if (!empty($user['profile_photo'])): ?>
-          <img src="<?= BASE_URL ?>/<?= htmlspecialchars($user['profile_photo']) ?>" alt="Profile">
-        <?php else: ?>
-          <span style="font-size:32px; font-weight:800; color:#6b7280;">
-            <?= strtoupper(substr($user['full_name'], 0, 1)) ?>
-          </span>
-        <?php endif; ?>
+    <div class="admin-card" style="margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:20px;">
+
+        <!-- Avatar -->
+        <div style="flex-shrink:0;">
+          <?php if (!empty($user['profile_photo'])): ?>
+            <img src="<?= BASE_URL ?>/<?= htmlspecialchars($user['profile_photo']) ?>"
+                 alt="Profile"
+                 style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid #e5e7eb;">
+          <?php else: ?>
+            <div style="width:80px; height:80px; border-radius:50%; background:#e5e7eb;
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:32px; font-weight:800; color:#6b7280; border:3px solid #e5e7eb;">
+              <?= strtoupper(substr($user['full_name'], 0, 1)) ?>
+            </div>
+          <?php endif; ?>
+        </div>
+
+        <!-- Name / Email / Role -->
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:20px; font-weight:800; color:#111827; margin-bottom:4px;">
+            <?= htmlspecialchars($user['full_name']) ?>
+          </div>
+          <div style="font-size:13px; color:#6b7280; margin-bottom:2px;">
+            <?= htmlspecialchars($user['email']) ?>
+          </div>
+          <div style="font-size:12px; color:#9ca3af; text-transform:capitalize;">
+            <?= htmlspecialchars($user['role']) ?>
+          </div>
+        </div>
+
+        <!-- Edit Profile button -->
+        <div style="flex-shrink:0;">
+          <a href="<?= BASE_URL ?>/edit_profile.php"
+             style="display:inline-block; padding:10px 22px;
+                    background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff;
+                    border-radius:10px; font-size:13px; font-weight:700;
+                    text-decoration:none; white-space:nowrap;">
+            Edit Profile
+          </a>
+        </div>
+
       </div>
-      <div class="profile-name"><?= htmlspecialchars($user['full_name']) ?></div>
-      <div class="profile-role">Role: <?= htmlspecialchars($user['role']) ?></div>
-      <div style="font-size:13px; color:#6b7280; margin-top:4px;"><?= htmlspecialchars($user['email']) ?></div>
     </div>
 
     <!-- Flash message -->
@@ -229,7 +267,7 @@ $historyReservations = array_filter($reservations, fn($r) => in_array($r['status
                     <span class="status-pill status-overdue">⚠️ Overdue</span>
                   <?php else: ?>
                     <span class="status-pill status-<?= htmlspecialchars($res['status']) ?>">
-                      <?= $res['status'] === 'pending' ? '⏳ Pending Approval' : '✅ Approved' ?>
+                      <?= $res['status'] === 'pending' ? 'Pending Approval' : 'Approved' ?>
                     </span>
                   <?php endif; ?>
 
@@ -277,9 +315,9 @@ $historyReservations = array_filter($reservations, fn($r) => in_array($r['status
                 </div>
                 <span class="status-pill status-<?= htmlspecialchars($res['status']) ?>">
                   <?= match($res['status']) {
-                    'returned'  => '✔ Returned',
-                    'cancelled' => '✖ Cancelled',
-                    'recalled'  => '🔙 Recalled by Admin',
+                    'returned'  => 'Returned',
+                    'cancelled' => 'Cancelled',
+                    'recalled'  => 'Recalled by Admin',
                     default     => ucfirst($res['status'])
                   } ?>
                 </span>

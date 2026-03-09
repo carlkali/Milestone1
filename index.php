@@ -72,6 +72,7 @@ foreach ($reservedStmt->fetchAll() as $row) {
 <section class="admin-card">
 
   <!-- Search Bar -->
+   
   <form class="book-search" method="GET" action="index.php">
     <input
       type="text"
@@ -79,14 +80,15 @@ foreach ($reservedStmt->fetchAll() as $row) {
       placeholder="Search books, authors, or type..."
       value="<?= htmlspecialchars($search) ?>"
     >
+    <?php if ($search !== ''): ?>
+      <a class="clear-search" style="margin-top: 10px;" href="index.php">Clear</a>
+    <?php endif; ?>
     <button type="submit">Search</button>
 
-    <?php if ($search !== ''): ?>
-      <a class="clear-search" href="index.php">Clear</a>
-    <?php endif; ?>
+    
   </form>
 
-  <h2 class="admin-title">Available Books</h2>
+  <h1 class="admin-title" style="margin-top: 20px;">Available Books</h2>
 
   <?php if (!$books): ?>
     <?php if ($search !== ''): ?>
@@ -114,7 +116,7 @@ foreach ($reservedStmt->fetchAll() as $row) {
             <?php if (isset($reservedBooks[$book['book_id']])): ?>
               <?php $rStatus = $reservedBooks[$book['book_id']]; ?>
               <span class="book-reserved-tag <?= $rStatus === 'approved' ? 'tag-reserved' : 'tag-pending' ?>">
-                <?= $rStatus === 'approved' ? '🔒 Reserved' : '⏳ Pending' ?>
+                <?= $rStatus === 'approved' ? 'Reserved' : 'Pending' ?>
               </span>
             <?php endif; ?>
 

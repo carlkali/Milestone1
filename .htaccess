@@ -1,0 +1,4 @@
+# Custom error pages
+ErrorDocument 404 /secwb/Milestone1/errors/404.php
+ErrorDocument 500 /secwb/Milestone1/errors/500.php
+ErrorDocument 403 /secwb/Milestone1/errors/404.php

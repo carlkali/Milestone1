@@ -3,12 +3,17 @@ declare(strict_types=1);
 
 // Include security configuration and helper functions
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/logger.php';
+
 
 $errors = [];
 $success = '';
 
 // Initialize login-related variables
 $email = '';
+
+$timeoutMsg = $_SESSION['timeout_msg'] ?? '';
+unset($_SESSION['timeout_msg']);
 
 // Check if form was submitted via POST method
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -36,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check if account is locked BEFORE checking credentials
             if (is_locked_out($email)) {
                 $errors[] = "The account '" . htmlspecialchars($email) . "' is temporarily locked due to too many failed login attempts. Please try again after " . LOCKOUT_MINUTES . " minutes, or use a different account.";
+                log_auth('WARNING', 'Login blocked — account locked out', ['email' => $email]);
                 $email = '';
             } else {
                 // Query database for user with matching email
@@ -59,6 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'profile_photo' => $user['profile_photo'],
                     ];
 
+                    $_SESSION['last_activity'] = time();
+
+                    log_auth('INFO', 'Login successful', ['email' => $email, 'role' => $user['role']]);
+
                     // Role-based redirect to appropriate dashboard
                     if ($user['role'] === 'admin') {
                         header('Location: ' . BASE_URL . '/admin.php');
@@ -69,11 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     // Login failed - show generic error message
                     $errors[] = "Invalid email or password.";
+                    log_auth('WARNING', 'Login failed — invalid credentials', ['email' => $email]);
                     $email = '';
                 }
             }
         }
     } // End of CSRF validation else block
+
+ 
 }
 ?>
 <!doctype html>
@@ -96,6 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php if (!empty($success)): ?>
         <div class="alert success"><?= htmlspecialchars($success) ?></div>
       <?php endif; ?>
+
+      <?php if (!empty($timeoutMsg)): ?>
+  <div class="alert error">
+    ⏱️ <?= htmlspecialchars($timeoutMsg) ?>
+  </div>
+<?php endif; ?>
 
       <!-- Display error messages if any exist -->
       <?php if (!empty($errors)): ?>

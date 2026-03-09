@@ -5,6 +5,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/reservations.php';
+require_once __DIR__ . '/includes/logger.php';
 
 $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -50,28 +51,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $action = $_POST['action'];
 
         // ── Reservation actions ──────────────────────────────────────────────
-        if ($action === 'reserve') {
-            $existing = get_active_reservation_for_book($bookId);
-            if ($existing) {
-                $flash = "This book is already reserved or has a pending request.";
-                $flashType = 'error';
-            } elseif ($userReservation) {
-                $flash = "You already have a pending or active reservation for this book.";
-                $flashType = 'error';
-            } else {
-                $ins = db()->prepare("INSERT INTO reservations (user_id, book_id, status) VALUES (?, ?, 'pending')");
-                $ins->execute([$userId, $bookId]);
-                $flash = "Reservation request submitted! Awaiting admin approval.";
-                $flashType = 'success';
-                $activeReservation = get_active_reservation_for_book($bookId);
-                $stmt2->execute([$userId, $bookId]);
-                $userReservation = $stmt2->fetch() ?: null;
-            }
+       if ($action === 'reserve') {
+    // Re-check from DB at moment of insert
+    $existing = get_active_reservation_for_book($bookId);
+
+    if ($existing) {
+        $flash     = "This book is already reserved or has a pending request.";
+        $flashType = 'error';
+    } elseif ($userReservation) {
+        $flash     = "You already have a pending or active reservation for this book.";
+        $flashType = 'error';
+    } else {
+        // Extra DB-level duplicate check
+        $dupCheck = db()->prepare("
+            SELECT id FROM reservations
+            WHERE user_id = ? AND book_id = ?
+              AND status IN ('pending', 'approved')
+            LIMIT 1
+        ");
+        $dupCheck->execute([$userId, $bookId]);
+
+        if ($dupCheck->fetch()) {
+            $flash     = "You already have an active reservation for this book.";
+            $flashType = 'error';
+        } else {
+            // ✅ Clean — insert the reservation
+            $ins = db()->prepare("
+                INSERT INTO reservations (user_id, book_id, status)
+                VALUES (?, ?, 'pending')
+            ");
+            $ins->execute([$userId, $bookId]);
+
+            log_transaction('INFO', 'Reservation requested', [
+                'book_id' => $bookId,
+                'user_id' => $userId,
+            ]);
+
+            $flash     = "Reservation request submitted! Awaiting admin approval.";
+            $flashType = 'success';
+
+            // Refresh state
+            $activeReservation = get_active_reservation_for_book($bookId);
+            $stmt2->execute([$userId, $bookId]);
+            $userReservation = $stmt2->fetch() ?: null;
+        }
+    }
 
         } elseif ($action === 'cancel') {
             if ($userReservation && $userReservation['status'] === 'pending') {
                 $upd = db()->prepare("UPDATE reservations SET status='cancelled' WHERE id=? AND user_id=?");
                 $upd->execute([$userReservation['id'], $userId]);
+                log_transaction('INFO', 'Reservation cancelled by user', ['book_id' => $bookId, 'user_id' => $_SESSION['user']['id']]);
                 $flash = "Reservation request cancelled.";
                 $flashType = 'success';
                 $activeReservation = null;
@@ -342,7 +372,7 @@ $isReservedByMe    = $userReservation !== null;
       <?php endif; ?>
       <?php if ($activeReservation): ?>
         <span class="reserved-badge">
-          <?= $activeReservation['status'] === 'approved' ? '📚 Reserved' : '⏳ Pending' ?>
+          <?= $activeReservation['status'] === 'approved' ? 'Reserved' : 'Pending' ?>
         </span>
       <?php endif; ?>
     </div>
@@ -361,19 +391,19 @@ $isReservedByMe    = $userReservation !== null;
         <?php if ($isReservedByMe): ?>
           <?php if ($userReservation['status'] === 'pending'): ?>
             <div class="reserve-status pending-box">
-              <span>⏳ Your reservation is <strong>pending admin approval</strong>.</span>
+              <span>Your reservation is <strong>pending admin approval</strong>.</span>
               <form method="post" style="display:inline; margin:0;">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="cancel">
-                <button type="submit" class="btn-cancel-small">Cancel Request</button>
+                <button type="submit" class="btn-cancel-small" >Cancel Request</button>
               </form>
             </div>
           <?php elseif ($userReservation['status'] === 'approved'): ?>
             <div class="reserve-status approved-box">
-              ✅ <strong>Approved!</strong> Return by:
+              <strong>Approved!</strong> Return by:
               <strong><?= date('M d, Y', strtotime($userReservation['due_date'])) ?></strong>
               <?php if ($userReservation['is_overdue']): ?>
-                <span class="overdue-badge">⚠️ Overdue</span>
+                <span class="overdue-badge">Overdue</span>
               <?php endif; ?>
             </div>
             <p style="font-size:13px; color:#6b7280; margin-top:8px;">
@@ -388,7 +418,7 @@ $isReservedByMe    = $userReservation !== null;
           <form method="post" style="margin:0;">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="reserve">
-            <button type="submit" class="btn-reserve">📖 Reserve this Book</button>
+            <button type="submit" class="btn-reserve">Reserve this Book</button>
           </form>
         <?php endif; ?>
       <?php elseif (empty($_SESSION['user'])): ?>
@@ -418,7 +448,7 @@ $isReservedByMe    = $userReservation !== null;
     <!-- Leave / update review button -->
     <?php if (!empty($_SESSION['user']) && $_SESSION['user']['role'] !== 'admin'): ?>
       <button class="btn-leave-review" id="openReviewBtn">
-        <?= $myReview ? '✏️ Update My Review' : '✍️ Leave a Review' ?>
+        <?= $myReview ? 'Update My Review' : 'Leave a Review' ?>
       </button>
     <?php elseif (empty($_SESSION['user'])): ?>
       <p style="font-size:13px; color:#6b7280; margin-bottom:20px;">
@@ -462,7 +492,7 @@ $isReservedByMe    = $userReservation !== null;
                   <input type="hidden" name="action" value="delete_review">
                   <input type="hidden" name="review_id" value="<?= (int)$rv['id'] ?>">
                   <button type="submit" class="btn-delete-review"
-                    onclick="return confirm('Delete your review?')">🗑 Delete</button>
+                    onclick="return confirm('Delete your review?')">Delete</button>
                 </form>
               <?php endif; ?>
             </div>

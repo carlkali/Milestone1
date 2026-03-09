@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/logger.php';
 
 $errors = [];
 $success = '';
@@ -11,32 +12,30 @@ $email = '';
 $phone = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF Protection - validate token first
+
     if (!validate_csrf_token()) {
         $errors[] = "Invalid request. Please refresh the page and try again.";
+        log_auth('WARNING', 'Registration failed - invalid CSRF token', [
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        ]);
     } else {
-        // Capture inputs from POST
         $full_name = trim($_POST['full_name'] ?? '');
         $email     = strtolower(trim($_POST['email'] ?? ''));
         $phone     = trim($_POST['phone'] ?? '');
         $password  = $_POST['password'] ?? '';
 
-        // Profile photo validation - check if file was uploaded
         if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] === UPLOAD_ERR_NO_FILE) {
             $errors[] = "Profile photo is required.";
         } elseif ($_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
-            // Check for other upload errors
             $errors[] = "File upload failed. Please try again.";
         } elseif ($_FILES['profile_photo']['size'] > MAX_UPLOAD_BYTES) {
             $errors[] = "Image too large (max 2MB).";
         }
 
-        // Validation
         if ($full_name === '') $errors[] = "Full name required.";
         if (!is_valid_email($email)) $errors[] = "Invalid email.";
         if (!is_valid_phone($phone)) $errors[] = "Invalid phone number.";
 
-        // Password validation - Check password BEFORE database operations
         $password_errors = validate_password_strength($password);
         if ($password_errors) {
             foreach ($password_errors as $pwd_err) {
@@ -44,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ONLY proceed to database if NO errors (including password errors)
         if (!$errors) {
             try {
                 $photo = handle_profile_upload($_FILES['profile_photo'] ?? []);
@@ -56,19 +54,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existing) {
                     if (isset($existing['email']) && strtolower($existing['email']) === $email) {
                         $errors[] = "Email already registered.";
+                        log_auth('WARNING', 'Registration failed - email already in use', [
+                            'email' => $email,
+                        ]);
                     }
                     if (isset($existing['phone']) && $existing['phone'] === $phone) {
                         $errors[] = "Phone number already registered.";
+                        log_auth('WARNING', 'Registration failed - phone already in use', [
+                            'phone' => $phone,
+                        ]);
                     }
                 } else {
                     $hash = password_hash($password, PASSWORD_BCRYPT);
-
                     $stmt = db()->prepare("
                         INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
                         VALUES (?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
-
+                    log_auth('INFO', 'New user registered', [
+                        'email' => $email,
+                        'name'  => $full_name,
+                    ]);
                     $success = true;
                 }
             } catch (Throwable $e) {

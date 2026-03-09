@@ -73,4 +73,22 @@ function get_all_reservations(?string $statusFilter = null): array {
         ");
     }
     return $stmt->fetchAll();
+
+    function get_active_reservation_for_book(int $bookId): array|false {
+    $stmt = db()->prepare("
+        SELECT r.*, u.full_name, u.email
+        FROM reservations r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.book_id = ?
+          AND r.status IN ('pending', 'approved')
+        ORDER BY
+            CASE r.status
+                WHEN 'approved' THEN 1
+                WHEN 'pending'  THEN 2
+            END
+        LIMIT 1
+    ");
+    $stmt->execute([$bookId]);
+    return $stmt->fetch();
+}
 }
