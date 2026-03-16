@@ -365,26 +365,52 @@ $isReservedByMe    = $userReservation !== null;
   <?php endif; ?>
 
   <!-- ── Book Detail ───────────────────────────────────────────────────── -->
-  <div class="book-detail">
-    <div style="position:relative; flex-shrink:0;">
-      <?php if (!empty($book['cover_image'])): ?>
-        <img class="book-detail-cover" src="<?= BASE_URL ?>/<?= htmlspecialchars($book['cover_image']) ?>" alt="Cover">
-      <?php endif; ?>
-      <?php if ($activeReservation): ?>
-        <span class="reserved-badge">
-          <?= $activeReservation['status'] === 'approved' ? 'Reserved' : 'Pending' ?>
-        </span>
-      <?php endif; ?>
-    </div>
+<div class="book-detail">
+  <div style="position:relative; flex-shrink:0;">
+    <?php if (!empty($book['cover_image'])): ?>
+      <img class="book-detail-cover"
+        src="<?= BASE_URL ?>/<?= htmlspecialchars($book['cover_image']) ?>"
+        alt="Cover">
+    <?php endif; ?>
 
-    <div class="book-detail-info">
-      <h2 class="admin-title" style="margin-top:0;"><?= htmlspecialchars($book['title']) ?></h2>
-      <p class="book-author"><?= htmlspecialchars($book['author']) ?></p>
-      <span class="book-type"><?= htmlspecialchars($book['type']) ?></span>
-      <hr style="margin:18px 0; opacity:0.2;">
-      <p style="line-height:1.6; margin:0 0 24px;">
-        <?= nl2br(htmlspecialchars($book['description'])) ?>
+    <?php if ($activeReservation): ?>
+      <span class="reserved-badge">
+        <?= $activeReservation['status'] === 'approved' ? 'Reserved' : 'Pending' ?>
+      </span>
+    <?php endif; ?>
+  </div>
+
+  <div class="book-detail-info">
+
+    <h2 class="admin-title" style="margin-top:0;">
+      <?= htmlspecialchars($book['title']) ?>
+    </h2>
+
+    <p class="book-author">
+      <?= htmlspecialchars($book['author']) ?>
+    </p>
+
+    <?php if (!empty($book['isbn'])): ?>
+      <p class="book-isbn">
+        ISBN: <?= htmlspecialchars($book['isbn']) ?>
       </p>
+    <?php endif; ?>
+
+    <?php if (!empty($book['year_published'])): ?>
+      <p class="book-year">
+        Year Published: <?= htmlspecialchars((string)$book['year_published']) ?>
+      </p>
+    <?php endif; ?>
+
+    <span class="book-type">
+      <?= htmlspecialchars($book['type']) ?>
+    </span>
+
+    <hr style="margin:18px 0; opacity:0.2;">
+
+    <p style="line-height:1.6; margin:0 0 24px;">
+      <?= nl2br(htmlspecialchars($book['description'])) ?>
+    </p>
 
       <!-- Reservation UI -->
       <?php if (!empty($_SESSION['user']) && $_SESSION['user']['role'] !== 'admin'): ?>

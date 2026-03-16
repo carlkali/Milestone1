@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
     $bookId = (int)($_POST['book_id'] ?? 0);
     if ($bookId) {
-        // ✅ Check for active reservations before deleting
+        // Check for active reservations before deleting
         $activeCheck = db()->prepare("
             SELECT COUNT(*) FROM reservations
             WHERE book_id = ? AND status IN ('pending', 'approved')
@@ -26,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         $activeCount = (int)$activeCheck->fetchColumn();
 
         if ($activeCount > 0) {
-            // Block delete — book is currently reserved
             header('Location: ' . BASE_URL . '/manage_books.php?error=reserved');
             exit;
         }
@@ -59,12 +58,12 @@ $books   = db()->query("SELECT * FROM books ORDER BY created_at DESC")->fetchAll
 $deleted = isset($_GET['deleted']);
 $error   = $_GET['error'] ?? '';
 
-// ✅ Fetch all actively reserved book IDs
+// Fetch all actively reserved book IDs
 $activeRes = db()->query("
     SELECT DISTINCT book_id FROM reservations
     WHERE status IN ('pending', 'approved')
 ")->fetchAll(PDO::FETCH_COLUMN);
-$activeReservedIds = array_flip($activeRes); // for fast isset() lookup
+$activeReservedIds = array_flip($activeRes);
 ?>
 <!doctype html>
 <html>
@@ -86,6 +85,7 @@ $activeReservedIds = array_flip($activeRes); // for fast isset() lookup
       display: inline-block;
     }
     .btn-edit:hover { opacity: .85; }
+
     .btn-delete {
       padding: 6px 14px;
       background: #ef4444;
@@ -97,18 +97,21 @@ $activeReservedIds = array_flip($activeRes); // for fast isset() lookup
       cursor: pointer;
     }
     .btn-delete:hover { opacity: .85; }
+
     .btn-delete:disabled {
       background: #d1d5db;
       color: #9ca3af;
       cursor: not-allowed;
       opacity: 1;
     }
+
     .book-thumb {
       width: 40px;
       height: 54px;
       object-fit: cover;
       border-radius: 6px;
     }
+
     .book-thumb-empty {
       width: 40px;
       height: 54px;
@@ -154,6 +157,8 @@ $activeReservedIds = array_flip($activeRes); // for fast isset() lookup
             <th>Cover</th>
             <th>Title</th>
             <th>Author</th>
+            <th>ISBN</th>
+            <th>Year Published</th>
             <th>Type</th>
             <th>Added</th>
             <th>Actions</th>
@@ -162,7 +167,7 @@ $activeReservedIds = array_flip($activeRes); // for fast isset() lookup
         <tbody>
           <?php if (empty($books)): ?>
             <tr>
-              <td colspan="6" style="text-align:center; color:#9ca3af; padding:32px;">
+              <td colspan="8" style="text-align:center; color:#9ca3af; padding:32px;">
                 No books yet. <a href="<?= BASE_URL ?>/add_book.php" style="color:#7c3aed;">Add one →</a>
               </td>
             </tr>
@@ -181,6 +186,8 @@ $activeReservedIds = array_flip($activeRes); // for fast isset() lookup
                 </td>
                 <td><?= htmlspecialchars($b['title']) ?></td>
                 <td><?= htmlspecialchars($b['author']) ?></td>
+                <td><?= !empty($b['isbn']) ? htmlspecialchars((string)$b['isbn']) : '—' ?></td>
+                <td><?= !empty($b['year_published']) ? htmlspecialchars((string)$b['year_published']) : '—' ?></td>
                 <td><?= htmlspecialchars($b['type']) ?></td>
                 <td><?= htmlspecialchars($b['created_at']) ?></td>
                 <td>
@@ -197,7 +204,6 @@ $activeReservedIds = array_flip($activeRes); // for fast isset() lookup
                       <input type="hidden" name="action" value="delete_book">
                       <input type="hidden" name="book_id" value="<?= (int)$b['book_id'] ?>">
 
-                      <!-- ✅ Disabled if book is currently reserved -->
                       <button class="btn-delete" type="submit"
                         <?= $isReserved ? 'disabled title="Cannot delete — book is currently reserved"' : '' ?>>
                         Delete

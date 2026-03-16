@@ -1,3 +1,9 @@
+RewriteEngine On
+
+# Force HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://localhost%{REQUEST_URI} [L,R=302]
+
 # Custom error pages
 ErrorDocument 404 /secwb/Milestone1/errors/404.php
 ErrorDocument 500 /secwb/Milestone1/errors/500.php

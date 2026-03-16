@@ -7,25 +7,31 @@ require_once __DIR__ . '/includes/auth.php';
 $search = trim($_GET['search'] ?? '');
 
 if ($search !== '') {
-  $stmt = db()->prepare("
-    SELECT * FROM books
-    WHERE title LIKE ?
-       OR author LIKE ?
-       OR type LIKE ?
-    ORDER BY created_at DESC
-  ");
+    $stmt = db()->prepare("
+        SELECT * FROM books
+        WHERE title LIKE ?
+           OR author LIKE ?
+           OR type LIKE ?
+           OR isbn LIKE ?
+        ORDER BY created_at DESC
+    ");
 
-  $like = "%$search%";
-  $stmt->execute([$like, $like, $like]);
+    $like = "%$search%";
+    $stmt->execute([$like, $like, $like, $like]);
 } else {
-  $stmt = db()->query("SELECT * FROM books ORDER BY created_at DESC");
+    $stmt = db()->query("SELECT * FROM books ORDER BY created_at DESC");
 }
 
 $books = $stmt->fetchAll();
 
 // Fetch reserved book IDs for catalog tags
-$reservedStmt = db()->query("SELECT book_id, status FROM reservations WHERE status IN ('pending','approved')");
+$reservedStmt = db()->query("
+    SELECT book_id, status
+    FROM reservations
+    WHERE status IN ('pending','approved')
+");
 $reservedBooks = [];
+
 foreach ($reservedStmt->fetchAll() as $row) {
     $reservedBooks[$row['book_id']] = $row['status'];
 }
@@ -71,24 +77,22 @@ foreach ($reservedStmt->fetchAll() as $row) {
 <main class="dash-main">
 <section class="admin-card">
 
-  <!-- Search Bar -->
-   
   <form class="book-search" method="GET" action="index.php">
     <input
       type="text"
       name="search"
-      placeholder="Search books, authors, or type..."
+      placeholder="Search books, authors, type, or ISBN..."
       value="<?= htmlspecialchars($search) ?>"
     >
+
     <?php if ($search !== ''): ?>
       <a class="clear-search" style="margin-top: 10px;" href="index.php">Clear</a>
     <?php endif; ?>
-    <button type="submit">Search</button>
 
-    
+    <button type="submit">Search</button>
   </form>
 
-  <h1 class="admin-title" style="margin-top: 20px;">Available Books</h2>
+  <h1 class="admin-title" style="margin-top: 20px;">Available Books</h1>
 
   <?php if (!$books): ?>
     <?php if ($search !== ''): ?>
@@ -104,12 +108,26 @@ foreach ($reservedStmt->fetchAll() as $row) {
           <div class="book-card">
 
             <?php if (!empty($book['cover_image'])): ?>
-              <img src="<?= BASE_URL ?>/<?= htmlspecialchars($book['cover_image']) ?>" class="book-cover" alt="Cover">
+              <img
+                src="<?= BASE_URL ?>/<?= htmlspecialchars($book['cover_image']) ?>"
+                class="book-cover"
+                alt="Cover"
+              >
             <?php endif; ?>
 
             <h3><?= htmlspecialchars($book['title']) ?></h3>
 
             <p class="book-author"><?= htmlspecialchars($book['author']) ?></p>
+
+            <p class="book-isbn">
+              ISBN: <?= htmlspecialchars($book['isbn'] ?? '—') ?>
+            </p>
+
+            <?php if (!empty($book['year_published'])): ?>
+              <p class="book-year">
+                Year Published: <?= htmlspecialchars((string)$book['year_published']) ?>
+              </p>
+            <?php endif; ?>
 
             <span class="book-type"><?= htmlspecialchars($book['type']) ?></span>
 

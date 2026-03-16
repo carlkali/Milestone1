@@ -8,11 +8,13 @@ require_once __DIR__ . '/includes/logger.php';
 require_admin();
 
 $errors = [];
-$success = isset($_GET['success']); // ✅ show success after redirect
+$success = isset($_GET['success']);
 
 $title = '';
 $type = '';
 $author = '';
+$isbn = '';
+$year_published = '';
 $description = '';
 
 function handle_book_cover_upload(array $file): ?string {
@@ -73,24 +75,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $title = trim($_POST['title'] ?? '');
         $type = trim($_POST['type'] ?? '');
         $author = trim($_POST['author'] ?? '');
+        $isbn = trim($_POST['isbn'] ?? '');
+        $year_published = trim($_POST['year_published'] ?? '');
         $description = trim($_POST['description'] ?? '');
 
         if ($title === '') $errors[] = "Title is required.";
         if ($author === '') $errors[] = "Author is required.";
+        if ($isbn === '') $errors[] = "ISBN is required.";
+        if ($year_published === '') $errors[] = "Year Published is required.";
         if ($description === '') $errors[] = "Description is required.";
         if (!in_array($type, $allowedTypes, true)) $errors[] = "Invalid type selected.";
+
+        if ($isbn !== '' && !preg_match('/^\d{10,13}$/', $isbn)) {
+            $errors[] = "ISBN must be numeric and 10–13 digits.";
+        }
+
+        if ($year_published !== '') {
+            if (!ctype_digit($year_published) || (int)$year_published < 1000 || (int)$year_published > (int)date('Y')) {
+                $errors[] = "Invalid year published.";
+            }
+        }
 
         if (!$errors) {
             try {
                 $coverPath = handle_book_cover_upload($_FILES['cover_image'] ?? []);
 
                 $stmt = db()->prepare("
-                    INSERT INTO books (title, type, author, description, cover_image)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO books (title, type, author, isbn, year_published, description, cover_image)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$title, $type, $author, $description, $coverPath]);
-                log_admin('INFO', 'New book added', ['title' => $title, 'author' => $author]);
-                // ✅ PRG pattern (prevents duplicates on refresh)
+                $stmt->execute([
+                    $title,
+                    $type,
+                    $author,
+                    $isbn,
+                    (int)$year_published,
+                    $description,
+                    $coverPath
+                ]);
+
+                log_admin('INFO', 'New book added', [
+                    'title' => $title,
+                    'author' => $author,
+                    'isbn' => $isbn,
+                    'year_published' => (int)$year_published
+                ]);
+
                 header("Location: add_book.php?success=1");
                 exit;
 
@@ -159,6 +189,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <label>Author</label>
   <input class="form-control" type="text" name="author" value="<?= htmlspecialchars($author) ?>" required>
 
+  <label>ISBN</label>
+  <input
+    class="form-control"
+    type="text"
+    name="isbn"
+    inputmode="numeric"
+    pattern="\d{10,13}"
+    maxlength="13"
+    value="<?= htmlspecialchars($isbn) ?>"
+    placeholder="Enter 10 to 13 digit ISBN"
+    required
+  >
+
+  <label>Year Published</label>
+  <input
+    class="form-control"
+    type="number"
+    name="year_published"
+    min="1000"
+    max="<?= date('Y') ?>"
+    value="<?= htmlspecialchars($year_published) ?>"
+    required
+  >
+
   <label>Description</label>
   <textarea class="form-control" name="description" rows="6" required><?= htmlspecialchars($description) ?></textarea>
 
@@ -177,11 +231,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 const toast = document.getElementById("success-toast");
 
-if(toast){
-setTimeout(()=>{
-toast.style.opacity = "0";
-toast.style.transform = "translateY(-10px)";
-setTimeout(()=> toast.remove(),300);
-},2000);
+if (toast) {
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-10px)";
+    setTimeout(() => toast.remove(), 300);
+  }, 2000);
 }
 </script>

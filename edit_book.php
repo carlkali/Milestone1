@@ -74,15 +74,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validate_csrf_token()) {
         $errors[] = "Invalid request. Please refresh and try again.";
     } else {
-        $title       = trim($_POST['title'] ?? '');
-        $author      = trim($_POST['author'] ?? '');
-        $type        = trim($_POST['type'] ?? '');
-        $description = trim($_POST['description'] ?? '');
+        $title          = trim($_POST['title'] ?? '');
+        $author         = trim($_POST['author'] ?? '');
+        $isbn           = trim($_POST['isbn'] ?? '');
+        $type           = trim($_POST['type'] ?? '');
+        $year_published = trim($_POST['year_published'] ?? '');
+        $description    = trim($_POST['description'] ?? '');
 
         if ($title === '')                         $errors[] = "Title is required.";
         if ($author === '')                        $errors[] = "Author is required.";
+        if ($isbn === '')                          $errors[] = "ISBN is required.";
+        if ($year_published === '')                $errors[] = "Year Published is required.";
         if ($description === '')                   $errors[] = "Description is required.";
         if (!in_array($type, $allowedTypes, true)) $errors[] = "Invalid type selected.";
+
+        if ($isbn !== '' && !preg_match('/^\d{10,13}$/', $isbn)) {
+            $errors[] = "ISBN must be numeric and 10–13 digits.";
+        }
+
+        if ($year_published !== '') {
+            if (!ctype_digit($year_published) || (int)$year_published < 1000 || (int)$year_published > (int)date('Y')) {
+                $errors[] = "Invalid year published.";
+            }
+        }
 
         if (!$errors) {
             try {
@@ -101,15 +115,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt = db()->prepare("
                     UPDATE books
-                    SET title = ?, author = ?, type = ?, description = ?, cover_image = ?
+                    SET title = ?, author = ?, isbn = ?, type = ?, year_published = ?, description = ?, cover_image = ?
                     WHERE book_id = ?
                 ");
-                $stmt->execute([$title, $author, $type, $description, $coverImage, $bookId]);
+                $stmt->execute([
+                    $title,
+                    $author,
+                    $isbn,
+                    $type,
+                    (int)$year_published,
+                    $description,
+                    $coverImage,
+                    $bookId
+                ]);
 
                 log_admin('INFO', 'Book edited', [
-                    'book_id' => $bookId,
-                    'title'   => $title,
-                    'admin'   => $_SESSION['user']['email'],
+                    'book_id'        => $bookId,
+                    'title'          => $title,
+                    'isbn'           => $isbn,
+                    'year_published' => (int)$year_published,
+                    'admin'          => $_SESSION['user']['email'],
                 ]);
 
                 header('Location: ' . BASE_URL . '/edit_book.php?id=' . $bookId . '&success=1');
@@ -168,13 +193,39 @@ $book = $stmt->fetch();
     <label>Type</label>
     <select class="form-control" name="type" required>
       <?php foreach ($allowedTypes as $t): ?>
-        <option value="<?= $t ?>" <?= $book['type'] === $t ? 'selected' : '' ?>><?= $t ?></option>
+        <option value="<?= htmlspecialchars($t) ?>" <?= $book['type'] === $t ? 'selected' : '' ?>>
+          <?= htmlspecialchars($t) ?>
+        </option>
       <?php endforeach; ?>
     </select>
 
     <label>Author</label>
     <input class="form-control" type="text" name="author" maxlength="120"
       value="<?= htmlspecialchars($book['author']) ?>" required>
+
+    <label>ISBN</label>
+    <input
+      class="form-control"
+      type="text"
+      name="isbn"
+      inputmode="numeric"
+      pattern="\d{10,13}"
+      maxlength="13"
+      value="<?= htmlspecialchars((string)($book['isbn'] ?? '')) ?>"
+      placeholder="Enter 10 to 13 digit ISBN"
+      required
+    >
+
+    <label>Year Published</label>
+    <input
+      class="form-control"
+      type="number"
+      name="year_published"
+      min="1000"
+      max="<?= date('Y') ?>"
+      value="<?= htmlspecialchars((string)($book['year_published'] ?? '')) ?>"
+      required
+    >
 
     <label>Description</label>
     <textarea class="form-control" name="description" rows="6" required
