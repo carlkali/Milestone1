@@ -15,7 +15,8 @@ $book = $stmt->fetch();
 
 if (!$book) {
     http_response_code(404);
-    die("Book not found.");
+    require __DIR__ . '/errors/404.php';
+    exit;
 }
 
 mark_overdue_reservations();

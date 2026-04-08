@@ -63,7 +63,7 @@ $baseUrl = '/secwb/Milestone1';
 </head>
 <body>
   <div class="error-card">
-    <div class="error-code">500</div>
+    <div class="error-code">Whoops!</div>
     <h1 class="error-title">Something Went Wrong</h1>
     <p class="error-msg">
       An unexpected error occurred. Please try again later.

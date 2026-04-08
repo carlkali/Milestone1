@@ -56,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 record_login_attempt($email, $ok);
 
                 if ($ok) {
+                    session_regenerate_id(true);
+
                     // Login successful - store user data in session
                     $_SESSION['user'] = [
                         'id' => $user['id'],

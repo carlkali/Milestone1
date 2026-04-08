@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 WHERE id = ? AND user_id = ? AND status = 'approved'
             ");
             $stmt->execute([$resId, $userId]);
-            log_auth('INFO', 'Book returned', [
+            log_transaction('INFO', 'Book returned', [
             'user_id'        => $userId,
                   'reservation_id' => $resId,
             ]);
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 WHERE id = ? AND user_id = ? AND status = 'pending'
             ");
             $stmt->execute([$resId, $userId]);
-            log_auth('INFO', 'Reservation cancelled by user', [
+            log_transaction('INFO', 'Reservation cancelled by user', [
             'user_id'        => $userId,
             'reservation_id' => $resId,
     ]);

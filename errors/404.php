@@ -63,7 +63,7 @@ $baseUrl = '/secwb/Milestone1';
 </head>
 <body>
   <div class="error-card">
-    <div class="error-code">404</div>
+    <div class="error-code">Oops!</div>
     <h1 class="error-title">Page Not Found</h1>
     <p class="error-msg">
       The page you're looking for doesn't exist or has been moved.

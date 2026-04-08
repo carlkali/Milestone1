@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]);
                     }
                 } else {
-                    $hash = password_hash($password, PASSWORD_BCRYPT);
+                    $hash = password_hash($password, PASSWORD_ARGON2ID);
                     $stmt = db()->prepare("
                         INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
                         VALUES (?, ?, ?, ?, ?)
