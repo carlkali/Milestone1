@@ -65,8 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]);
                     }
                 } else {
-                    $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT;
-                    $hash = password_hash($password, $algo);
+                    $hash = password_hash($password, PASSWORD_ARGON2ID);
 
                     if ($hash === false) {
                         throw new RuntimeException("Failed to hash password.");
