@@ -141,7 +141,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
 
             } catch (Throwable $e) {
-                $errors[] = $e->getMessage();
+                log_admin('ERROR', 'Exception caught', [
+                    'msg'   => $e->getMessage(),
+                    'file'  => $e->getFile(),
+                    'line'  => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                $errors[] = DEBUG
+                    ? ("Error: " . $e->getMessage())
+                    : "Something went wrong. Please try again.";
             }
         }
     }

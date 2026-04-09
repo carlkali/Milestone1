@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$errors) {
             if ($password !== '') {
-                $hash = password_hash($password, PASSWORD_BCRYPT);
+                $hash = password_hash($password, PASSWORD_ARGON2ID);
                 $stmt = db()->prepare("
                     UPDATE users SET full_name=?, phone=?, password_hash=?, profile_photo=? WHERE id=?
                 ");

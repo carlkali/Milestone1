@@ -20,6 +20,7 @@ function mark_overdue_reservations(): void {
 
 /**
  * Get the active reservation for a book (pending or approved only).
+ * Prefer an approved reservation over a pending one.
  */
 function get_active_reservation_for_book(int $bookId): array|false {
     $stmt = db()->prepare("
@@ -27,7 +28,13 @@ function get_active_reservation_for_book(int $bookId): array|false {
         FROM reservations r
         JOIN users u ON u.id = r.user_id
         WHERE r.book_id = ?
-          AND r.status IN ('pending','approved')
+          AND r.status IN ('pending', 'approved')
+        ORDER BY
+            CASE r.status
+                WHEN 'approved' THEN 1
+                WHEN 'pending'  THEN 2
+                ELSE 3
+            END
         LIMIT 1
     ");
     $stmt->execute([$bookId]);
@@ -63,32 +70,15 @@ function get_all_reservations(?string $statusFilter = null): array {
             ORDER BY r.requested_at DESC
         ");
         $stmt->execute([$statusFilter]);
-    } else {
-        $stmt = db()->query("
-            SELECT r.*, u.full_name, u.email, b.title AS book_title, b.author, b.cover_image
-            FROM reservations r
-            JOIN users u ON u.id = r.user_id
-            JOIN books b ON b.book_id = r.book_id
-            ORDER BY r.requested_at DESC
-        ");
+        return $stmt->fetchAll();
     }
-    return $stmt->fetchAll();
 
-    function get_active_reservation_for_book(int $bookId): array|false {
-    $stmt = db()->prepare("
-        SELECT r.*, u.full_name, u.email
+    $stmt = db()->query("
+        SELECT r.*, u.full_name, u.email, b.title AS book_title, b.author, b.cover_image
         FROM reservations r
         JOIN users u ON u.id = r.user_id
-        WHERE r.book_id = ?
-          AND r.status IN ('pending', 'approved')
-        ORDER BY
-            CASE r.status
-                WHEN 'approved' THEN 1
-                WHEN 'pending'  THEN 2
-            END
-        LIMIT 1
+        JOIN books b ON b.book_id = r.book_id
+        ORDER BY r.requested_at DESC
     ");
-    $stmt->execute([$bookId]);
-    return $stmt->fetch();
-}
+    return $stmt->fetchAll();
 }

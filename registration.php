@@ -65,20 +65,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]);
                     }
                 } else {
-                    $hash = password_hash($password, PASSWORD_ARGON2ID);
+                    $algo = defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_BCRYPT;
+                    $hash = password_hash($password, $algo);
+
+                    if ($hash === false) {
+                        throw new RuntimeException("Failed to hash password.");
+                    }
+
                     $stmt = db()->prepare("
                         INSERT INTO users (full_name, email, phone, password_hash, profile_photo)
                         VALUES (?, ?, ?, ?, ?)
                     ");
                     $stmt->execute([$full_name, $email, $phone, $hash, $photo]);
+
                     log_auth('INFO', 'New user registered', [
                         'email' => $email,
                         'name'  => $full_name,
                     ]);
+
                     $success = true;
                 }
             } catch (Throwable $e) {
-                $errors[] = $e->getMessage();
+                log_auth('ERROR', 'Exception caught during registration', [
+                    'msg'   => $e->getMessage(),
+                    'file'  => $e->getFile(),
+                    'line'  => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                    'email' => $email ?? null,
+                    'ip'    => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+                ]);
+
+                $errors[] = DEBUG
+                    ? ("Error: " . $e->getMessage())
+                    : "Something went wrong. Please try again.";
             }
         }
     }

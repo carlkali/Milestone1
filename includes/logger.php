@@ -29,9 +29,30 @@ function write_log(string $channel, string $level, string $message, array $conte
     $userId    = $_SESSION['user']['id']    ?? 'guest';
     $userEmail = $_SESSION['user']['email'] ?? 'guest';
 
-    $contextStr = empty($context)
-        ? ''
-        : ' | ' . http_build_query($context, '', ', ');
+    $contextStr = '';
+if (!empty($context)) {
+    $pairs = [];
+
+    foreach ($context as $k => $v) {
+        if (is_bool($v)) {
+            $v = $v ? 'true' : 'false';
+        } elseif ($v === null) {
+            $v = 'null';
+        } elseif (is_array($v) || is_object($v)) {
+            $json = json_encode($v, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $v = ($json === false) ? '[unencodable]' : $json;
+        } else {
+            $v = (string)$v;
+        }
+
+        // Keep log lines single-line; escape newlines/tabs
+        $v = str_replace(["\r", "\n", "\t"], ['\\r', '\\n', '\\t'], $v);
+
+        $pairs[] = $k . '=' . $v;
+    }
+
+    $contextStr = ' | ' . implode(', ', $pairs);
+}
 
     $line = "[{$timestamp}] [{$level}] [IP:{$ip}] [User:{$userId}({$userEmail})] {$message}{$contextStr}" . PHP_EOL;
 

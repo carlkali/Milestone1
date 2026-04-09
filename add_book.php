@@ -124,12 +124,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: add_book.php?success=1");
                 exit;
 
-            } catch (Throwable $e) {
-                $errors[] = $e->getMessage();
+            }  catch (Throwable $e) {
+                log_admin('ERROR', 'Exception caught', [
+                    'msg'   => $e->getMessage(),
+                    'file'  => $e->getFile(),
+                    'line'  => $e->getLine(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                $errors[] = DEBUG
+                    ? ("Error: " . $e->getMessage())
+                    : "Something went wrong. Please try again.";
             }
-        }
-    }
-}
+                        }
+                    }
+                }
+
 ?>
 <!doctype html>
 <html>
