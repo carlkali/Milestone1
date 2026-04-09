@@ -33,8 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!preg_match('/^\+?[0-9\s\-]{7,30}$/', $phone)) $errors[] = "Invalid phone number format.";
 
         if ($password !== '') {
-            if (strlen($password) < 8)   $errors[] = "Password must be at least 8 characters.";
-            if ($password !== $confirm)  $errors[] = "Passwords do not match.";
+            if ($password !== $confirm) {
+                $errors[] = "Passwords do not match.";
+            } else {
+                $pwd_errors = validate_password_strength($password);
+                if ($pwd_errors) {
+                    foreach ($pwd_errors as $e) {
+                        $errors[] = $e;
+                    }
+                }
+            }
         }
 
         if (!$errors) {
@@ -45,30 +53,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $profilePhoto = $user['profile_photo'];
         if (!empty($_FILES['profile_photo']['name'])) {
-            $file    = $_FILES['profile_photo'];
-
-            $finfo   = new finfo(FILEINFO_MIME_TYPE);
-            $mime    = $finfo->file($file['tmp_name']);
-            $allowed = ['image/jpeg', 'image/png'];
-
-            if (!in_array($mime, $allowed, true)) {
-                $errors[] = "Profile photo must be JPG or PNG.";
-            } elseif ($file['size'] > MAX_UPLOAD_BYTES) {
-                $errors[] = "Profile photo must be under 2MB.";
-            } else {
-                $ext      = $mime === 'image/png' ? 'png' : 'jpg';
-                $filename = 'uploads/profiles/' . uniqid('user_', true) . '.' . $ext;
-                $destPath = __DIR__ . '/' . $filename;
-
-                if (move_uploaded_file($file['tmp_name'], $destPath)) {
+            try {
+                $newPhoto = handle_profile_upload($_FILES['profile_photo']);
+                if ($newPhoto) {
+                    // Remove old photo
                     if (!empty($user['profile_photo'])) {
                         $oldPath = __DIR__ . '/' . $user['profile_photo'];
                         if (file_exists($oldPath)) unlink($oldPath);
                     }
-                    $profilePhoto = $filename;
-                } else {
-                    $errors[] = "Failed to upload profile photo.";
+                    $profilePhoto = $newPhoto;
                 }
+            } catch (RuntimeException $e) {
+                $errors[] = $e->getMessage();
             }
         }
 
