@@ -46,7 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $profilePhoto = $user['profile_photo'];
         if (!empty($_FILES['profile_photo']['name'])) {
             $file    = $_FILES['profile_photo'];
-            $mime    = mime_content_type($file['tmp_name']);
+
+            $finfo   = new finfo(FILEINFO_MIME_TYPE);
+            $mime    = $finfo->file($file['tmp_name']);
             $allowed = ['image/jpeg', 'image/png'];
 
             if (!in_array($mime, $allowed, true)) {
@@ -70,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if (!$errors) {
+         if (!$errors) {
             if ($password !== '') {
                 $hash = password_hash($password, PASSWORD_ARGON2ID);
                 $stmt = db()->prepare("

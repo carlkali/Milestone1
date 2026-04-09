@@ -4,8 +4,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 
-$search = trim($_GET['search'] ?? '');
+check_session_timeout();
 
+
+$search = mb_substr(trim($_GET['search'] ?? ''), 0, 100);
+ 
 if ($search !== '') {
     $stmt = db()->prepare("
         SELECT * FROM books
@@ -15,7 +18,7 @@ if ($search !== '') {
            OR isbn LIKE ?
         ORDER BY created_at DESC
     ");
-
+ 
     $like = "%$search%";
     $stmt->execute([$like, $like, $like, $like]);
 } else {

@@ -35,6 +35,23 @@ if (!$book) {
     exit;
 }
 
+$activeCheck = db()->prepare("
+    SELECT COUNT(*) FROM reservations
+    WHERE book_id = ? AND status IN ('pending', 'approved')
+");
+$activeCheck->execute([$bookId]);
+$activeCount = (int)$activeCheck->fetchColumn();
+ 
+if ($activeCount > 0) {
+    log_admin('WARNING', 'Book deletion blocked — active reservation exists', [
+        'book_id' => $bookId,
+        'title'   => $book['title'],
+        'admin'   => $_SESSION['user']['email'],
+    ]);
+    header('Location: ' . BASE_URL . '/admin.php?error=reserved');
+    exit;
+}
+
 // Delete cover image file if exists
 if (!empty($book['cover_image'])) {
     $coverPath = __DIR__ . '/' . $book['cover_image'];

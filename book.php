@@ -7,6 +7,8 @@ require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/reservations.php';
 require_once __DIR__ . '/includes/logger.php';
 
+check_session_timeout();
+
 $bookId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 $stmt = db()->prepare("SELECT * FROM books WHERE book_id = ?");
@@ -128,6 +130,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $del->execute([$userId, $bookId]);
                 $ins = db()->prepare("INSERT INTO reviews (user_id, book_id, rating, body) VALUES (?,?,?,?)");
                 $ins->execute([$userId, $bookId, $rating, $body]);
+
+                log_transaction('INFO', 'Review submitted', [
+                    'book_id' => $bookId,
+                    'user_id' => $userId,
+                    'rating'  => $rating,
+                ]);
+
                 $flash = "Your review has been posted!";
                 $flashType = 'success';
             }
@@ -138,6 +147,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($revId) {
                 $del = db()->prepare("DELETE FROM reviews WHERE id=? AND user_id=?");
                 $del->execute([$revId, $userId]);
+
+                // FIX 4: Log review deletion (was missing entirely).
+                log_transaction('INFO', 'Review deleted', [
+                    'review_id' => $revId,
+                    'book_id'   => $bookId,
+                    'user_id'   => $userId,
+                ]);
+
                 $flash = "Review deleted.";
                 $flashType = 'success';
             }
