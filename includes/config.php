@@ -11,7 +11,7 @@ define('DB_USER', 'root');
 define('DB_PASS', ''); // XAMPP default
 
 // Your project URL base:
-define('BASE_URL', '/secwb/Milestone1');
+define('BASE_URL', 'https://margeret-noninvincible-volubly.ngrok-free.dev/secwb/Milestone1');
 
 // ✅ Environment & Debug -- 
 define('APP_ENV', 'local');          // change to 'production' on live server

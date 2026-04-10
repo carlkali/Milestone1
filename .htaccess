@@ -1,10 +1,15 @@
 RewriteEngine On
 
-# Force HTTPS
+# Force HTTPS — but skip if coming through ngrok (already HTTPS)
 RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP_HOST} !^.*\.ngrok.*$ [NC]
 RewriteRule ^ https://localhost%{REQUEST_URI} [L,R=302]
 
 # Custom error pages
 ErrorDocument 404 /secwb/Milestone1/errors/404.php
 ErrorDocument 500 /secwb/Milestone1/errors/500.php
 ErrorDocument 403 /secwb/Milestone1/errors/404.php
+
+<IfModule mod_headers.c>
+    Header always set ngrok-skip-browser-warning "true"
+</IfModule>

@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $flash     = "You already have an active reservation for this book.";
             $flashType = 'error';
         } else {
-            // ✅ Clean — insert the reservation
+            // Clean — insert the reservation
             $ins = db()->prepare("
                 INSERT INTO reservations (user_id, book_id, status)
                 VALUES (?, ?, 'pending')
@@ -113,42 +113,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         // ── Review: submit ───────────────────────────────────────────────────
         } elseif ($action === 'submit_review') {
-            $rating = max(1, min(5, (int)($_POST['rating'] ?? 5)));
-            $body   = trim($_POST['review_body'] ?? '');
+    $rating = max(1, min(5, (int)($_POST['rating'] ?? 5)));
+    $body   = trim($_POST['review_body'] ?? '');
 
-            if ($body === '') {
-                $flash = "Review text cannot be empty.";
-                $flashType = 'error';
-                $openReviewModal = true;
-            } elseif (mb_strlen($body) > 1000) {
-                $flash = "Review must be 1000 characters or less.";
-                $flashType = 'error';
-                $openReviewModal = true;
-            } else {
-                // UPSERT: one review per user per book (delete old then insert)
-                $del = db()->prepare("DELETE FROM reviews WHERE user_id=? AND book_id=?");
-                $del->execute([$userId, $bookId]);
-                $ins = db()->prepare("INSERT INTO reviews (user_id, book_id, rating, body) VALUES (?,?,?,?)");
-                $ins->execute([$userId, $bookId, $rating, $body]);
+    if ($body === '') {
+        $flash = "Review text cannot be empty.";
+        $flashType = 'error';
+        $openReviewModal = true;
+    } elseif (mb_strlen($body) > 1000) {
+        $flash = "Review must be 1000 characters or less.";
+        $flashType = 'error';
+        $openReviewModal = true;
+    } else {
+        // 1) Check if review already exists for this user/book
+        $check = db()->prepare("
+            SELECT id, rating
+            FROM reviews
+            WHERE user_id = ? AND book_id = ?
+            LIMIT 1
+        ");
+        $check->execute([$userId, $bookId]);
+        $existing = $check->fetch();
 
-                log_transaction('INFO', 'Review submitted', [
-                    'book_id' => $bookId,
-                    'user_id' => $userId,
-                    'rating'  => $rating,
-                ]);
+        if ($existing) {
+            // 2a) UPDATE existing review
+            $upd = db()->prepare("
+                UPDATE reviews
+                SET rating = ?, body = ?, created_at = NOW()
+                WHERE id = ? AND user_id = ? AND book_id = ?
+            ");
+            $upd->execute([$rating, $body, (int)$existing['id'], $userId, $bookId]);
 
-                $flash = "Your review has been posted!";
-                $flashType = 'success';
-            }
+            log_transaction('INFO', 'Review updated', [
+                'review_id'   => (int)$existing['id'],
+                'book_id'     => $bookId,
+                'user_id'     => $userId,
+                'old_rating'  => (int)$existing['rating'],
+                'new_rating'  => $rating,
+            ]);
+
+            $flash = "Your review has been updated!";
+            $flashType = 'success';
+        } else {
+            // 2b) INSERT new review
+            $ins = db()->prepare("
+                INSERT INTO reviews (user_id, book_id, rating, body)
+                VALUES (?, ?, ?, ?)
+            ");
+            $ins->execute([$userId, $bookId, $rating, $body]);
+
+            $newId = (int)db()->lastInsertId();
+
+            log_transaction('INFO', 'Review created', [
+                'review_id' => $newId,
+                'book_id'   => $bookId,
+                'user_id'   => $userId,
+                'rating'    => $rating,
+            ]);
+
+            $flash = "Your review has been posted!";
+            $flashType = 'success';
+        }
+    }
+}
 
         // ── Review: delete ───────────────────────────────────────────────────
-        } elseif ($action === 'delete_review') {
+         elseif ($action === 'delete_review') {
             $revId = (int)($_POST['review_id'] ?? 0);
             if ($revId) {
                 $del = db()->prepare("DELETE FROM reviews WHERE id=? AND user_id=?");
                 $del->execute([$revId, $userId]);
 
-                // FIX 4: Log review deletion (was missing entirely).
                 log_transaction('INFO', 'Review deleted', [
                     'review_id' => $revId,
                     'book_id'   => $bookId,
@@ -157,10 +192,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 $flash = "Review deleted.";
                 $flashType = 'success';
-            }
-        }
-    }
-}
+            } // end delete_review elseif
+        } // end "else" (valid CSRF + logged in)
+      }  // end POST handler if
+    }     
+         
+    
+
 
 // ── Load reviews ─────────────────────────────────────────────────────────────
 $reviewStmt = db()->prepare("
